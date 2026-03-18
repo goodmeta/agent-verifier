@@ -1,0 +1,21 @@
+{
+  "name": "@goodmeta/ap2-verifier",
+  "version": "0.1.0",
+  "description": "AP2 mandate verification — signature verification, constraint checking, and Verifier API client",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "demo": "tsx examples/single-merchant.ts"
+  },
+  "files": ["dist", "README.md"],
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  },
+  "dependencies": {
+    "viem": "^2.23.0"
+  },
+  "license": "MIT"
+}
