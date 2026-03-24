@@ -1,7 +1,7 @@
 {
-  "name": "@goodmeta/ap2-verifier",
-  "version": "0.1.0",
-  "description": "AP2 mandate verification — signature verification, constraint checking, and Verifier API client",
+  "name": "@goodmeta/agent-verifier",
+  "version": "0.2.0",
+  "description": "Agent spending verification — signature verification, policy-based constraints, and Verifier API client",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

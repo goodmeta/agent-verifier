@@ -1,16 +1,19 @@
 /**
- * @goodmeta/ap2-verifier
+ * @goodmeta/agent-verifier
  *
- * AP2 mandate verification — open source.
+ * Agent spending verification — open source.
  *
- * Stateless verification (self-host):
- *   import { verifyIntentSignature, checkConstraints } from "@goodmeta/ap2-verifier";
+ * AP2 mandate verification (self-host):
+ *   import { verifyIntentSignature, checkConstraints } from "@goodmeta/agent-verifier";
  *
- * Hosted Verifier API (cross-merchant):
- *   import { VerifierClient } from "@goodmeta/ap2-verifier";
+ * Policy-based verification (Lago, custom billing):
+ *   import { checkPolicy } from "@goodmeta/agent-verifier";
+ *
+ * Hosted Verifier API (cross-agent state):
+ *   import { VerifierClient } from "@goodmeta/agent-verifier";
  */
 
-// Types
+// AP2 Types
 export type {
   IntentMandate,
   CartMandate,
@@ -22,7 +25,7 @@ export type {
   SettleResponse,
 } from "./types.js";
 
-// Stateless verification (open source, self-hostable)
+// AP2 Stateless verification (open source, self-hostable)
 export {
   verifyIntentSignature,
   verifyCartSignature,
@@ -32,13 +35,21 @@ export {
   CART_MANDATE_TYPES,
 } from "./verify.js";
 
-// Signing
+// AP2 Signing
 export {
   signIntentMandate,
   signCartMandate,
   approveCartMandate,
 } from "./sign.js";
 
-// Hosted Verifier client (for cross-merchant state)
+// Policy-based verification (Lago, custom billing, non-AP2)
+export { checkPolicy } from "./policy.js";
+export type {
+  SpendingPolicy,
+  PolicyVerifyRequest,
+  PolicyVerifyResponse,
+} from "./policy.js";
+
+// Hosted Verifier client (for cross-agent state)
 export { VerifierClient } from "./client.js";
 export type { VerifierClientOptions } from "./client.js";
