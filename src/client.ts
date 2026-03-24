@@ -5,7 +5,7 @@
  * Cross-merchant budget tracking, hold management, audit trail.
  *
  * Usage:
- *   import { VerifierClient } from "@goodmeta/ap2-verifier";
+ *   import { VerifierClient } from "@goodmeta/agent-verifier";
  *
  *   const verifier = new VerifierClient({
  *     apiKey: "gm_live_...",
@@ -26,6 +26,13 @@ import type {
   VerifyResponse,
   SettleResponse,
 } from "./types.js";
+
+export interface VerifyByIdTransaction {
+  amount: string;
+  currency: string;
+  items?: CartItem[];
+  idempotencyKey: string;
+}
 
 export interface VerifierClientOptions {
   apiKey: string;
@@ -61,6 +68,26 @@ export class VerifierClient {
         Authorization: `Bearer ${this.apiKey}`,
       },
       body: JSON.stringify({ mandate, transaction }),
+    });
+    return res.json() as Promise<VerifyResponse>;
+  }
+
+  /**
+   * Verify by mandate/policy ID — for integrations where the agent
+   * only passes an ID (e.g. cart metadata), not the full mandate object.
+   * The hosted Verifier already has the mandate on file.
+   */
+  async verifyById(
+    mandateId: string,
+    transaction: VerifyByIdTransaction
+  ): Promise<VerifyResponse> {
+    const res = await fetch(`${this.baseUrl}/v1/verify`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify({ mandateId, transaction }),
     });
     return res.json() as Promise<VerifyResponse>;
   }

@@ -52,4 +52,4 @@ export type {
 
 // Hosted Verifier client (for cross-agent state)
 export { VerifierClient } from "./client.js";
-export type { VerifierClientOptions } from "./client.js";
+export type { VerifierClientOptions, VerifyByIdTransaction } from "./client.js";

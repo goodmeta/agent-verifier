@@ -164,7 +164,8 @@ if (approved) {
 
 | Method | Description |
 | --- | --- |
-| `verifier.verify(mandate, tx)` | Verify + place budget hold (cross-agent safe) |
+| `verifier.verify(mandate, tx)` | Verify with full mandate object + place budget hold |
+| `verifier.verifyById(mandateId, tx)` | Verify by ID (agent passes ID, verifier has mandate on file) |
 | `verifier.settle(id, result)` | Confirm payment or release hold |
 | `verifier.getMandateState(id)` | Query budget, tx count, and history |
 
