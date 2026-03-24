@@ -2,31 +2,40 @@
 
 Can this agent spend $X on Y right now? One function call.
 
-```typescript
-import { checkPolicy } from "@goodmeta/agent-verifier";
+```ts
+import { checkPolicy } from "@goodmeta/agent-verifier"
 
-const result = checkPolicy(policy, { agentId: "agent-1", amount: 4500, idempotencyKey: "tx-1" });
+const result = checkPolicy(policy, {
+  agentId: "agent-1",
+  amount: 4500,
+  idempotencyKey: "tx-1",
+})
 // → { approved: true, remaining: { budget: 15500 } }
-// → { approved: false, reason: "BUDGET_EXCEEDED", detail: "$45.00 exceeds remaining $30.00" }
+// → { approved: false, reason: "BUDGET_EXCEEDED", detail: "$45 exceeds remaining $30" }
 ```
 
-```typescript
-import { VerifierClient } from "@goodmeta/agent-verifier";
+Or with the hosted verifier (cross-agent budget tracking):
 
-const v = new VerifierClient({ apiKey: "gm_live_..." });
-const { approved, verificationId } = await v.verify(mandate, { amount: "3000", idempotencyKey: "tx-1" });
+```ts
+import { VerifierClient } from "@goodmeta/agent-verifier"
+
+const verifier = new VerifierClient({ apiKey: "gm_live_..." })
+const { approved, verificationId } = await verifier.verify(mandate, {
+  amount: "3000",
+  idempotencyKey: "tx-1",
+})
 ```
 
----
+## Why
 
-## What This Does
+Agents need spending limits. Without them, a runaway agent generates unlimited charges. This library answers one question before every transaction:
 
-Agents need spending limits. Without them, a runaway agent can generate unlimited charges. This library answers one question before every transaction: **is this agent authorized to spend this amount?**
+**Is this agent authorized to spend this amount?**
 
 - **Budget caps** — $200/month, $50 max per transaction
-- **Scope restrictions** — only these API codes, only these customers
+- **Scope restrictions** — allowed API codes, allowed customers, blocklists
 - **Cross-agent tracking** — one budget across multiple services (hosted mode)
-- **Works with any payment rail** — Stripe, x402, MPP, bank, doesn't matter
+- **Rail-agnostic** — works with Stripe, x402, MPP, bank transfers, anything
 
 ## Install
 
@@ -34,110 +43,136 @@ Agents need spending limits. Without them, a runaway agent can generate unlimite
 npm install @goodmeta/agent-verifier
 ```
 
-## Three Verification Modes
+## Usage
 
-### 1. Policy-Based (simplest — no crypto, no signatures)
+### Policy-based verification
 
-Define spending rules, check against them. Good for billing systems, MCP servers, internal tools.
+No crypto, no signatures. Define spending rules, check against them. Good for billing systems, MCP servers, internal tools.
 
-```typescript
-import { checkPolicy, type SpendingPolicy } from "@goodmeta/agent-verifier";
+```ts
+import { checkPolicy, type SpendingPolicy } from "@goodmeta/agent-verifier"
 
 const policy: SpendingPolicy = {
   agentId: "billing-agent",
-  budgetTotal: 20000,       // $200/month
+  budgetTotal: 20_000, // $200/month
   budgetPeriod: "monthly",
   constraints: {
-    maxPerEvent: 5000,      // $50 max per event
+    maxPerEvent: 5_000, // $50 per event
     allowedCodes: ["api_calls", "compute"],
   },
-};
+}
 
-checkPolicy(policy, { agentId: "billing-agent", amount: 4500, idempotencyKey: "tx-1" });
-// ✅ { approved: true, remaining: { budget: 15500, period: "monthly" } }
+// ✅ approved
+checkPolicy(policy, {
+  agentId: "billing-agent",
+  amount: 4_500,
+  idempotencyKey: "tx-1",
+})
+// → { approved: true, remaining: { budget: 15500, period: "monthly" } }
 
-checkPolicy(policy, { agentId: "billing-agent", amount: 6000, idempotencyKey: "tx-2" });
-// ❌ { approved: false, reason: "AMOUNT_EXCEEDED", detail: "$60.00 exceeds per-event max $50.00" }
+// ❌ over per-event limit
+checkPolicy(policy, {
+  agentId: "billing-agent",
+  amount: 6_000,
+  idempotencyKey: "tx-2",
+})
+// → { approved: false, reason: "AMOUNT_EXCEEDED", detail: "$60.00 exceeds per-event max $50.00" }
 
-checkPolicy(policy, { agentId: "billing-agent", amount: 3000, metadata: { code: "storage" }, idempotencyKey: "tx-3" });
-// ❌ { approved: false, reason: "CODE_NOT_ALLOWED", detail: 'Code "storage" not in allowed list' }
+// ❌ code not allowed
+checkPolicy(policy, {
+  agentId: "billing-agent",
+  amount: 3_000,
+  metadata: { code: "storage" },
+  idempotencyKey: "tx-3",
+})
+// → { approved: false, reason: "CODE_NOT_ALLOWED", detail: 'Code "storage" not in allowed list' }
 ```
 
-### 2. AP2 Mandate Verification (cryptographic — Google's protocol)
+### AP2 mandate verification
 
-For agents carrying [AP2](https://ap2-protocol.org/) signed mandates. Verifies EIP-712 signatures and checks constraints.
+For agents carrying [AP2](https://ap2-protocol.org/) cryptographic mandates (Google, 60+ partners). Verifies EIP-712 signatures and checks constraints.
 
-```typescript
-import { verifyIntentSignature, checkConstraints } from "@goodmeta/agent-verifier";
+```ts
+import {
+  verifyIntentSignature,
+  checkConstraints,
+} from "@goodmeta/agent-verifier"
 
-// Verify the mandate is cryptographically real
-const sig = await verifyIntentSignature(mandate);
+// verify the mandate signature is real
+const sig = await verifyIntentSignature(mandate)
+if (!sig.valid) throw new Error(sig.error)
 
-// Check spending constraints
-const check = checkConstraints(mandate, { amount: "3000", merchantId: "merchant-1" });
+// check spending constraints
+const check = checkConstraints(mandate, {
+  amount: "3000",
+  merchantId: "merchant-1",
+})
+if (!check.valid) throw new Error(check.error)
 ```
 
-### 3. Hosted Verifier (cross-agent budget tracking)
+### Hosted verifier
 
-When one agent's budget spans multiple services — Mistral AND Groq AND CoreWeave — a shared verifier tracks the total. Self-hosted verification can't do this.
+When one agent's budget spans multiple services — Mistral AND Groq AND CoreWeave — a shared verifier tracks the total spend. Self-hosted verification can't do this because each service only sees its own transactions.
 
-```typescript
-import { VerifierClient } from "@goodmeta/agent-verifier";
+```ts
+import { VerifierClient } from "@goodmeta/agent-verifier"
 
 const verifier = new VerifierClient({
   apiKey: "gm_live_...",
   baseUrl: "https://verifier.goodmeta.co",
-});
+})
 
-// Verify + place budget hold
-const result = await verifier.verify(mandate, {
+// verify + place budget hold
+const { approved, verificationId } = await verifier.verify(mandate, {
   amount: "3000",
   currency: "USDC",
   idempotencyKey: "order-123",
-});
+})
 
-if (result.approved) {
-  const payment = await processPayment(/* any rail */);
-  await verifier.settle(result.verificationId, {
-    success: payment.success,
+if (approved) {
+  // settle via any payment rail
+  const payment = await charge(/* stripe, x402, mpp, bank */)
+
+  await verifier.settle(verificationId!, {
+    success: payment.ok,
     transactionId: payment.id,
     rail: "card",
-  });
+  })
 }
 ```
 
-## API Reference
+## API
 
-### Policy-Based
+### Policy
 
-| Function | What |
-|----------|------|
-| `checkPolicy(policy, request, currentSpend?)` | Check spending request against policy constraints |
+| Function | Description |
+| --- | --- |
+| `checkPolicy(policy, request, currentSpend?)` | Check a spending request against policy constraints |
 
-### AP2 Mandates
+### AP2 mandates
 
-| Function | What |
-|----------|------|
-| `verifyIntentSignature(mandate)` | Verify EIP-712 signature |
-| `verifyCartSignature(mandate)` | Verify cart mandate signature |
-| `checkConstraints(mandate, tx)` | Check budget, merchant, category, temporal |
-| `signIntentMandate(mandate, account)` | Sign spending authority |
-| `signCartMandate(mandate, account)` | Sign price commitment |
-| `approveCartMandate(mandate, account)` | Approve specific purchase |
+| Function | Description |
+| --- | --- |
+| `verifyIntentSignature(mandate)` | Verify EIP-712 signature on an Intent Mandate |
+| `verifyCartSignature(mandate)` | Verify EIP-712 signature on a Cart Mandate |
+| `checkConstraints(mandate, tx)` | Check budget, merchant, category, and temporal constraints |
+| `signIntentMandate(mandate, account)` | User signs autonomous spending authority |
+| `signCartMandate(mandate, account)` | Merchant signs price commitment |
+| `approveCartMandate(mandate, account)` | User approves a specific purchase |
 
-### Hosted Verifier Client
+### Hosted verifier client
 
-| Method | What |
-|--------|------|
-| `verifier.verify(mandate, tx)` | Verify + hold budget (cross-agent safe) |
-| `verifier.settle(id, result)` | Confirm or release payment |
-| `verifier.getMandateState(id)` | Query budget + history |
+| Method | Description |
+| --- | --- |
+| `verifier.verify(mandate, tx)` | Verify + place budget hold (cross-agent safe) |
+| `verifier.settle(id, result)` | Confirm payment or release hold |
+| `verifier.getMandateState(id)` | Query budget, tx count, and history |
 
-## Further Reading
+## Related
 
-- [AP2](https://ap2-protocol.org/) — Google's agent payment authorization (60+ partners)
-- [MPP](https://mpp.dev/) — Machine Payments Protocol (Tempo/Stripe)
-- [x402](https://www.x402.org/) — HTTP-native agent payments (Coinbase)
+- [AP2](https://ap2-protocol.org/) — Agent payment authorization by Google (60+ partners)
+- [MPP](https://mpp.dev/) — Machine Payments Protocol by Tempo + Stripe
+- [x402](https://www.x402.org/) — HTTP-native agent payments by Coinbase
 
 ## License
 
