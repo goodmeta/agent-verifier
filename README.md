@@ -1,6 +1,6 @@
 # @goodmeta/agent-verifier
 
-Can this agent spend $X on Y right now? One function call.
+Implements the [Budget Authority Protocol](https://github.com/goodmeta/agent-payments-landscape/blob/main/specs/budget-authority-protocol.md). Can this agent spend $X on Y right now? One function call.
 
 ```ts
 import { checkPolicy } from "@goodmeta/agent-verifier"
