@@ -7,15 +7,20 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
+    "test": "node --import tsx --test test/*.test.ts",
     "demo": "tsx examples/single-merchant.ts"
   },
-  "files": ["dist", "README.md"],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "devDependencies": {
     "tsx": "^4.19.0",
     "typescript": "^5.7.0"
   },
   "dependencies": {
-    "viem": "^2.23.0"
+    "viem": "^2.23.0",
+    "zod": "4.4.3"
   },
   "license": "MIT"
 }

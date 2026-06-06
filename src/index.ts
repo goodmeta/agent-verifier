@@ -53,3 +53,6 @@ export type {
 // Hosted Verifier client (for cross-agent state)
 export { VerifierClient } from "./client.js";
 export type { VerifierClientOptions, VerifyByIdTransaction } from "./client.js";
+
+// Input validation schemas (zod) — the boundary validators, shared cents rule
+export { parseCents, Cents, ConstraintTxSchema, PolicyRequestSchema } from "./schema.js";

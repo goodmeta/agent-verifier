@@ -7,6 +7,8 @@
  * Same core logic: can this agent spend $X on Y right now?
  */
 
+import { PolicyRequestSchema } from "./schema.js";
+
 export interface SpendingPolicy {
   agentId: string;
   budgetTotal: number;
@@ -50,70 +52,84 @@ export function checkPolicy(
   request: PolicyVerifyRequest,
   currentSpend: number = 0
 ): PolicyVerifyResponse {
+  // Validate the untrusted request at the boundary. `amount` is coerced to
+  // positive integer cents — a negative amount would otherwise pass every ">"
+  // check below and then inflate the remaining budget (remaining - (-x)).
+  const parsed = PolicyRequestSchema.safeParse(request);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    return {
+      approved: false,
+      reason: issue?.path[0] === "amount" ? "INVALID_AMOUNT" : "INVALID_REQUEST",
+      detail: issue?.message ?? "invalid request",
+    };
+  }
+  const { amount, metadata } = parsed.data;
+
   const { constraints } = policy;
 
   // Per-event max
-  if (request.amount > constraints.maxPerEvent) {
+  if (amount > constraints.maxPerEvent) {
     return {
       approved: false,
       reason: "AMOUNT_EXCEEDED",
-      detail: `$${(request.amount / 100).toFixed(2)} exceeds per-event max $${(constraints.maxPerEvent / 100).toFixed(2)}`,
+      detail: `$${(amount / 100).toFixed(2)} exceeds per-event max $${(constraints.maxPerEvent / 100).toFixed(2)}`,
     };
   }
 
   // Budget check
   const remaining = policy.budgetTotal - currentSpend;
-  if (request.amount > remaining) {
+  if (amount > remaining) {
     return {
       approved: false,
       reason: "BUDGET_EXCEEDED",
-      detail: `$${(request.amount / 100).toFixed(2)} exceeds remaining budget $${(remaining / 100).toFixed(2)}`,
+      detail: `$${(amount / 100).toFixed(2)} exceeds remaining budget $${(remaining / 100).toFixed(2)}`,
       remaining: { budget: remaining, period: policy.budgetPeriod },
     };
   }
 
   // Code allowlist
-  if (request.metadata?.code && constraints.allowedCodes?.length) {
-    if (!constraints.allowedCodes.includes(request.metadata.code)) {
+  if (metadata?.code && constraints.allowedCodes?.length) {
+    if (!constraints.allowedCodes.includes(metadata.code)) {
       return {
         approved: false,
         reason: "CODE_NOT_ALLOWED",
-        detail: `Code "${request.metadata.code}" not in allowed list`,
+        detail: `Code "${metadata.code}" not in allowed list`,
       };
     }
   }
 
   // Code blocklist
-  if (request.metadata?.code && constraints.blockedCodes?.includes(request.metadata.code)) {
+  if (metadata?.code && constraints.blockedCodes?.includes(metadata.code)) {
     return {
       approved: false,
       reason: "CODE_BLOCKED",
-      detail: `Code "${request.metadata.code}" is blocked`,
+      detail: `Code "${metadata.code}" is blocked`,
     };
   }
 
   // Customer allowlist
-  if (request.metadata?.customer && constraints.allowedCustomers?.length) {
-    if (!constraints.allowedCustomers.includes(request.metadata.customer)) {
+  if (metadata?.customer && constraints.allowedCustomers?.length) {
+    if (!constraints.allowedCustomers.includes(metadata.customer)) {
       return {
         approved: false,
         reason: "CUSTOMER_NOT_ALLOWED",
-        detail: `Customer "${request.metadata.customer}" not in allowed list`,
+        detail: `Customer "${metadata.customer}" not in allowed list`,
       };
     }
   }
 
   // Customer blocklist
-  if (request.metadata?.customer && constraints.blockedCustomers?.includes(request.metadata.customer)) {
+  if (metadata?.customer && constraints.blockedCustomers?.includes(metadata.customer)) {
     return {
       approved: false,
       reason: "CUSTOMER_BLOCKED",
-      detail: `Customer "${request.metadata.customer}" is blocked`,
+      detail: `Customer "${metadata.customer}" is blocked`,
     };
   }
 
   return {
     approved: true,
-    remaining: { budget: remaining - request.amount, period: policy.budgetPeriod },
+    remaining: { budget: remaining - amount, period: policy.budgetPeriod },
   };
 }

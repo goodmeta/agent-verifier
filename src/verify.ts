@@ -12,6 +12,7 @@
 
 import { verifyTypedData, type Address } from "viem";
 import type { IntentMandate, CartMandate, CartItem } from "./types.js";
+import { parseCents, ConstraintTxSchema } from "./schema.js";
 
 // EIP-712 domain + types (must match AP2 spec)
 const AP2_DOMAIN = { name: "AP2", version: "0.1.0" } as const;
@@ -114,8 +115,15 @@ export function checkConstraints(
   mandate: IntentMandate,
   transaction: { amount: string; merchantId?: string; items?: CartItem[] }
 ): VerificationResult {
+  // Validate the untrusted transaction at the boundary. `amount` is coerced to
+  // positive integer cents; malformed input can't slip past the checks below.
+  const parsed = ConstraintTxSchema.safeParse(transaction);
+  if (!parsed.success) {
+    return { valid: false, error: parsed.error.issues[0]?.message ?? "Invalid transaction" };
+  }
+  const { amount, merchantId, items } = parsed.data;
+
   const now = new Date();
-  const amount = parseInt(transaction.amount, 10);
   const c = mandate.constraints;
 
   // Temporal
@@ -127,28 +135,32 @@ export function checkConstraints(
   }
 
   // Per-transaction max
-  if (amount > parseInt(c.maxAmount, 10)) {
+  const maxAmount = parseCents(c.maxAmount);
+  if (maxAmount === null) {
+    return { valid: false, error: "Mandate maxAmount is not a valid positive integer (cents)" };
+  }
+  if (amount > maxAmount) {
     return {
       valid: false,
-      error: `$${(amount / 100).toFixed(2)} exceeds per-transaction max $${(parseInt(c.maxAmount, 10) / 100).toFixed(2)}`,
+      error: `$${(amount / 100).toFixed(2)} exceeds per-transaction max $${(maxAmount / 100).toFixed(2)}`,
     };
   }
 
   // Merchant allowlist
-  if (transaction.merchantId && c.allowedMerchants?.length) {
-    if (!c.allowedMerchants.includes(transaction.merchantId)) {
-      return { valid: false, error: `Merchant ${transaction.merchantId} not in allowlist` };
+  if (merchantId && c.allowedMerchants?.length) {
+    if (!c.allowedMerchants.includes(merchantId)) {
+      return { valid: false, error: `Merchant ${merchantId} not in allowlist` };
     }
   }
 
   // Merchant blocklist
-  if (transaction.merchantId && c.blockedMerchants?.includes(transaction.merchantId)) {
-    return { valid: false, error: `Merchant ${transaction.merchantId} is blocked` };
+  if (merchantId && c.blockedMerchants?.includes(merchantId)) {
+    return { valid: false, error: `Merchant ${merchantId} is blocked` };
   }
 
   // Category check
-  if (c.categories?.length && transaction.items?.length) {
-    for (const item of transaction.items) {
+  if (c.categories?.length && items?.length) {
+    for (const item of items) {
       if (item.category && !c.categories.includes(item.category)) {
         return { valid: false, error: `Category "${item.category}" not allowed` };
       }
