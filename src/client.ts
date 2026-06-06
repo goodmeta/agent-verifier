@@ -22,6 +22,8 @@ import type {
   CartItem,
   VerifyResponse,
   SettleResponse,
+  ReleaseResponse,
+  RefundResponse,
 } from "./types.js";
 
 export interface VerifyByIdTransaction {
@@ -174,6 +176,32 @@ export class VerifierClient {
     paymentResult: { success: boolean; transactionId?: string; rail?: string }
   ): Promise<SettleResponse> {
     return this.post<SettleResponse>("/v1/settle", { verificationId, paymentResult });
+  }
+
+  /**
+   * Release a pre-commit hold, returning the unspent reservation to the budget.
+   * Use BEFORE a payment settles (planned charge cancelled, hold expiring).
+   * For an already-settled payment, use refund() instead.
+   */
+  async release(verificationId: string): Promise<ReleaseResponse> {
+    return this.post<ReleaseResponse>("/v1/release", { verificationId });
+  }
+
+  /**
+   * Refund a settled (committed) payment, fully or partially. Restores budget.
+   * `idempotencyKey` makes retries safe — the same key never double-refunds.
+   * For a pre-commit hold that hasn't settled, use release() instead.
+   */
+  async refund(
+    verificationId: string,
+    amountCents: number,
+    idempotencyKey: string
+  ): Promise<RefundResponse> {
+    return this.post<RefundResponse>("/v1/refund", {
+      verificationId,
+      amount_cents: amountCents,
+      idempotency_key: idempotencyKey,
+    });
   }
 
   /**

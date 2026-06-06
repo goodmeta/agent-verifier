@@ -166,8 +166,13 @@ if (approved) {
 | --- | --- |
 | `verifier.verify(mandate, tx)` | Verify with full mandate object + place budget hold |
 | `verifier.verifyById(mandateId, tx)` | Verify by ID (agent passes ID, verifier has mandate on file) |
-| `verifier.settle(id, result)` | Confirm payment or release hold |
+| `verifier.createBudget(opts)` | Create a budget envelope — no signature; the API key is the trust anchor |
+| `verifier.settle(id, result)` | Confirm payment (debit budget) or release the hold |
+| `verifier.release(id)` | Return a pre-commit hold to the budget (before settlement) |
+| `verifier.refund(id, cents, key)` | Reverse a settled payment, full or partial (idempotent) |
 | `verifier.getMandateState(id)` | Query budget, tx count, and history |
+
+Calls apply a timeout and throw a typed `VerifierError` (with HTTP `status` + `body`) on transport, auth, or server failures; a denied verification is returned with `approved: false`, not thrown.
 
 ## Related
 

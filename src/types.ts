@@ -91,13 +91,29 @@ export interface SettleRequest {
   };
 }
 
+export interface MandateSummary {
+  id: string;
+  budgetSpent: string;
+  remainingBudget: string;
+  txCount: number;
+}
+
 export interface SettleResponse {
   settled: boolean;
   released?: boolean;
-  mandate?: {
-    id: string;
-    budgetSpent: string;
-    remainingBudget: string;
-    txCount: number;
-  };
+  mandate?: MandateSummary;
+}
+
+export interface ReleaseResponse {
+  released: boolean;
+  mandate?: MandateSummary;
+}
+
+export interface RefundResponse {
+  refundId?: string;
+  refundedAmount?: string;
+  totalRefunded?: string;
+  status?: "refunded" | "partially_refunded";
+  idempotentReplay?: boolean;
+  mandate?: MandateSummary;
 }
