@@ -14,8 +14,9 @@ highest-value targets are:
 
 - **Money parsing** — every amount must pass the `Cents` validator (positive,
   safe-integer cents). Report any input that bypasses it or is mis-parsed.
-- **Signature verification** — EIP-712 verification uses `viem`. Report any
-  mandate that verifies with an invalid, mismatched, or replayed signature.
+- **Signature verification** — mandates are signed as ES256 JWS (via `jose`),
+  matching AP2. Report any mandate that verifies with an invalid, mismatched,
+  alg-confused (`none`/HS256), or replayed signature.
 - **Constraint / policy bypass** — report any transaction approved despite
   violating a budget, per-event cap, allowlist/blocklist, category, or expiry.
 
