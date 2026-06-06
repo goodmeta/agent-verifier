@@ -26,7 +26,6 @@ export interface IntentMandate {
   maxTransactions?: number;
   budgetTotal: string;
   budgetSpent: string;
-  userSignature?: string;
 }
 
 export interface CartMandate {
@@ -43,8 +42,6 @@ export interface CartMandate {
   };
   expiresAt: string;
   paymentRails: string[];
-  merchantSignature?: string;
-  userSignature?: string;
 }
 
 export interface CartItem {

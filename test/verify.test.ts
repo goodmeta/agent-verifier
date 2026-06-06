@@ -1,17 +1,14 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
-import { verifyIntentSignature, checkConstraints, signIntentMandate } from "../src/index.js";
+import { checkConstraints } from "../src/index.js";
 import type { IntentMandate } from "../src/index.js";
 
-const ADDR = "0x0000000000000000000000000000000000000001";
-
-function makeMandate(addr: string): IntentMandate {
+function makeMandate(): IntentMandate {
   return {
     type: "intent-mandate",
     version: "0.1.0",
     id: "m-1",
-    user: { id: addr },
+    user: { id: "user-1" },
     agent: { id: "agent-1" },
     intent: "buy coffee",
     constraints: {
@@ -27,85 +24,59 @@ function makeMandate(addr: string): IntentMandate {
     budgetSpent: "0",
   };
 }
+const coffee = [{ id: "x", name: "Latte", quantity: 1, unitPrice: "2200", currency: "USDC", category: "coffee" }];
 
-test("verifies a valid EIP-712 intent signature (sign → verify round-trip)", async () => {
-  const acct = privateKeyToAccount(generatePrivateKey());
-  const m = makeMandate(acct.address);
-  m.userSignature = await signIntentMandate(m, acct);
-  assert.equal((await verifyIntentSignature(m)).valid, true);
+test("approves an in-bounds transaction", () => {
+  assert.equal(checkConstraints(makeMandate(), { amount: "2200", merchantId: "m_ok", items: coffee }).valid, true);
 });
 
-test("rejects a mandate with no signature", async () => {
-  const acct = privateKeyToAccount(generatePrivateKey());
-  assert.equal((await verifyIntentSignature(makeMandate(acct.address))).valid, false);
+test("denies over per-transaction max", () => {
+  assert.equal(checkConstraints(makeMandate(), { amount: "3500", merchantId: "m_ok", items: coffee }).valid, false);
 });
 
-test("rejects a tampered mandate (maxAmount changed after signing)", async () => {
-  const acct = privateKeyToAccount(generatePrivateKey());
-  const m = makeMandate(acct.address);
-  m.userSignature = await signIntentMandate(m, acct);
-  m.constraints.maxAmount = "999999";
-  assert.equal((await verifyIntentSignature(m)).valid, false);
+test("allowlist denies a non-listed merchant AND a missing merchantId (no fail-open)", () => {
+  const m = makeMandate();
+  assert.equal(checkConstraints(m, { amount: "1000", merchantId: "m_other", items: coffee }).valid, false);
+  assert.equal(checkConstraints(m, { amount: "1000", items: coffee }).valid, false); // missing merchantId
 });
 
-test("rejects a signature from a different key than user.id", async () => {
-  const acct = privateKeyToAccount(generatePrivateKey());
-  const other = privateKeyToAccount(generatePrivateKey());
-  const m = makeMandate(other.address); // claims `other`
-  m.userSignature = await signIntentMandate(m, acct); // but signed by `acct`
-  assert.equal((await verifyIntentSignature(m)).valid, false);
+test("blocklist denies (mandate without an allowlist)", () => {
+  const m = makeMandate();
+  m.constraints.allowedMerchants = undefined;
+  assert.equal(checkConstraints(m, { amount: "1000", merchantId: "m_bad", items: coffee }).valid, false);
 });
 
-test("checkConstraints approves an in-bounds transaction", () => {
-  const r = checkConstraints(makeMandate(ADDR), {
-    amount: "2200",
-    merchantId: "m_ok",
-    items: [{ id: "x", name: "Latte", quantity: 1, unitPrice: "2200", currency: "USDC", category: "coffee" }],
-  });
-  assert.equal(r.valid, true);
-});
-
-test("checkConstraints enforces max, allowlist, blocklist, category", () => {
-  const m = makeMandate(ADDR);
-  assert.equal(checkConstraints(m, { amount: "3500" }).valid, false); // over per-tx max
-  assert.equal(checkConstraints(m, { amount: "1000", merchantId: "m_other" }).valid, false); // not allowed
-  assert.equal(checkConstraints(m, { amount: "1000", merchantId: "m_bad" }).valid, false); // blocked
+test("category denies a disallowed category AND a no-items tx (no fail-open)", () => {
+  const m = makeMandate();
   assert.equal(
-    checkConstraints(m, { amount: "1000", items: [{ id: "b", name: "Book", quantity: 1, unitPrice: "1000", currency: "USDC", category: "books" }] }).valid,
+    checkConstraints(m, { amount: "1000", merchantId: "m_ok", items: [{ id: "b", name: "Book", quantity: 1, unitPrice: "1000", currency: "USDC", category: "books" }] }).valid,
     false,
-  ); // wrong category
+  );
+  assert.equal(checkConstraints(m, { amount: "1000", merchantId: "m_ok" }).valid, false); // no items
 });
 
-test("checkConstraints denies expired and not-yet-valid mandates", () => {
-  const exp = makeMandate(ADDR);
+test("denies expired and not-yet-valid mandates", () => {
+  const exp = makeMandate();
   exp.validUntil = new Date(Date.now() - 1000).toISOString();
-  assert.equal(checkConstraints(exp, { amount: "100" }).valid, false);
-
-  const nyv = makeMandate(ADDR);
+  assert.equal(checkConstraints(exp, { amount: "100", merchantId: "m_ok", items: coffee }).valid, false);
+  const nyv = makeMandate();
   nyv.validFrom = new Date(Date.now() + 3_600_000).toISOString();
-  assert.equal(checkConstraints(nyv, { amount: "100" }).valid, false);
+  assert.equal(checkConstraints(nyv, { amount: "100", merchantId: "m_ok", items: coffee }).valid, false);
 });
 
-// Was the bug: parseInt("50.99") → 50 (silent truncation), parseInt("abc") → NaN (slipped through).
-test("checkConstraints rejects fractional/negative/NaN/garbage amounts", () => {
-  const m = makeMandate(ADDR);
+test("rejects unparseable validFrom/validUntil (no NaN fail-open)", () => {
+  const okTx = { amount: "100", merchantId: "m_ok", items: coffee };
+  const bu = makeMandate();
+  bu.validUntil = "not-a-date";
+  assert.equal(checkConstraints(bu, okTx).valid, false);
+  const bf = makeMandate();
+  bf.validFrom = "garbage";
+  assert.equal(checkConstraints(bf, okTx).valid, false);
+});
+
+test("rejects fractional/negative/NaN/garbage amounts", () => {
+  const m = makeMandate();
   for (const bad of ["50.99", "-500", "abc", "3000abc"]) {
-    assert.equal(checkConstraints(m, { amount: bad }).valid, false, `amount ${bad}`);
+    assert.equal(checkConstraints(m, { amount: bad, merchantId: "m_ok", items: coffee }).valid, false, `amount ${bad}`);
   }
-});
-
-// Was the bug: `new Date("garbage") > now` and `< now` are both false, so an
-// unparseable validFrom/validUntil silently passed the temporal gate.
-test("checkConstraints rejects unparseable validFrom/validUntil (no NaN fail-open)", () => {
-  const okTx = {
-    amount: "100",
-    merchantId: "m_ok",
-    items: [{ id: "x", name: "L", quantity: 1, unitPrice: "100", currency: "USDC", category: "coffee" }],
-  };
-  const badUntil = makeMandate(ADDR);
-  badUntil.validUntil = "not-a-date";
-  assert.equal(checkConstraints(badUntil, okTx).valid, false);
-  const badFrom = makeMandate(ADDR);
-  badFrom.validFrom = "garbage";
-  assert.equal(checkConstraints(badFrom, okTx).valid, false);
 });

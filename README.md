@@ -90,25 +90,24 @@ checkPolicy(policy, {
 
 ### AP2 mandate verification
 
-For agents carrying [AP2](https://ap2-protocol.org/) cryptographic mandates (Google, 60+ partners). Verifies EIP-712 signatures and checks constraints.
+For agents carrying [AP2](https://ap2-protocol.org/)-style mandates (Google, 60+ partners). A mandate is signed as a compact **ES256 JWS over the whole mandate** — the same mechanism AP2 uses — so verifying it both proves authenticity and hands back the trusted mandate. Then check its constraints.
 
 ```ts
-import {
-  verifyIntentSignature,
-  checkConstraints,
-} from "@goodmeta/agent-verifier"
+import { signMandate, verifyMandate, checkConstraints } from "@goodmeta/agent-verifier"
 
-// verify the mandate signature is real
-const sig = await verifyIntentSignature(mandate)
-if (!sig.valid) throw new Error(sig.error)
+// user signs the WHOLE mandate (ES256, JWK key) → a compact JWS token
+const token = await signMandate(mandate, userPrivateJwk)
 
-// check spending constraints
-const check = checkConstraints(mandate, {
-  amount: "3000",
-  merchantId: "merchant-1",
-})
+// merchant verifies the signature and gets the trusted mandate back
+const { valid, mandate: verified, error } = await verifyMandate(token, userPublicJwk)
+if (!valid) throw new Error(error)
+
+// check spending constraints on the verified mandate
+const check = checkConstraints(verified, { amount: "3000", merchantId: "merchant-1" })
 if (!check.valid) throw new Error(check.error)
 ```
+
+Because the entire mandate is under the signature, scope fields (allowlist, categories, validity window) can't be altered without breaking it.
 
 ### Hosted verifier
 
@@ -149,16 +148,13 @@ if (approved) {
 | --- | --- |
 | `checkPolicy(policy, request, currentSpend?)` | Check a spending request against policy constraints |
 
-### AP2 mandates
+### AP2 mandates (ES256 JWS — matches AP2)
 
 | Function | Description |
 | --- | --- |
-| `verifyIntentSignature(mandate)` | Verify EIP-712 signature on an Intent Mandate |
-| `verifyCartSignature(mandate)` | Verify EIP-712 signature on a Cart Mandate |
+| `signMandate(mandate, privateJwk)` | Sign the whole mandate as a compact ES256 JWS (returns a token) |
+| `verifyMandate(token, publicJwk)` | Verify the JWS signature; returns the trusted mandate payload |
 | `checkConstraints(mandate, tx)` | Check budget, merchant, category, and temporal constraints |
-| `signIntentMandate(mandate, account)` | User signs autonomous spending authority |
-| `signCartMandate(mandate, account)` | Merchant signs price commitment |
-| `approveCartMandate(mandate, account)` | User approves a specific purchase |
 
 ### Hosted verifier client
 

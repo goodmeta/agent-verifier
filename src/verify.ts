@@ -1,42 +1,14 @@
 /**
- * Stateless Mandate Verification
+ * Constraint checking for a verified mandate.
  *
- * Open-source verification primitives:
- * - EIP-712 signature verification
- * - Constraint checking (budget, merchant, category, temporal)
- *
- * These work for single-merchant self-hosted verification.
- * For cross-merchant budget tracking, use the hosted Verifier API
- * via the VerifierClient class.
+ * Signature verification lives in mandate-jwt.ts (ES256 JWS — the mechanism AP2
+ * uses). Once a mandate's signature is verified there, the WHOLE payload is
+ * trusted, and these checks enforce the spending constraints it carries. There
+ * is no "signed subset vs enforced superset" gap: every field was under the JWS.
  */
 
-import { verifyTypedData, type Address } from "viem";
-import type { IntentMandate, CartMandate, CartItem } from "./types.js";
+import type { IntentMandate, CartItem } from "./types.js";
 import { parseCents, ConstraintTxSchema } from "./schema.js";
-
-// EIP-712 domain + types (must match AP2 spec)
-const AP2_DOMAIN = { name: "AP2", version: "0.1.0" } as const;
-
-const INTENT_MANDATE_TYPES = {
-  IntentMandate: [
-    { name: "id", type: "string" },
-    { name: "intent", type: "string" },
-    { name: "maxAmount", type: "string" },
-    { name: "currency", type: "string" },
-    { name: "validUntil", type: "string" },
-    { name: "budgetTotal", type: "string" },
-  ],
-} as const;
-
-const CART_MANDATE_TYPES = {
-  CartMandate: [
-    { name: "id", type: "string" },
-    { name: "merchantId", type: "string" },
-    { name: "total", type: "string" },
-    { name: "currency", type: "string" },
-    { name: "expiresAt", type: "string" },
-  ],
-} as const;
 
 export interface VerificationResult {
   valid: boolean;
@@ -44,102 +16,31 @@ export interface VerificationResult {
 }
 
 /**
- * Verify an Intent Mandate's EIP-712 signature.
- */
-export async function verifyIntentSignature(
-  mandate: IntentMandate
-): Promise<VerificationResult> {
-  if (!mandate.userSignature) {
-    return { valid: false, error: "Missing user signature" };
-  }
-
-  try {
-    const valid = await verifyTypedData({
-      address: mandate.user.id as Address,
-      domain: AP2_DOMAIN,
-      types: INTENT_MANDATE_TYPES,
-      primaryType: "IntentMandate",
-      message: {
-        id: mandate.id,
-        intent: mandate.intent,
-        maxAmount: mandate.constraints.maxAmount,
-        currency: mandate.constraints.currency,
-        validUntil: mandate.validUntil,
-        budgetTotal: mandate.budgetTotal,
-      },
-      signature: mandate.userSignature as `0x${string}`,
-    });
-    return valid ? { valid: true } : { valid: false, error: "Invalid signature" };
-  } catch {
-    return { valid: false, error: "Signature verification failed" };
-  }
-}
-
-/**
- * Verify a Cart Mandate's EIP-712 signature (user side).
- */
-export async function verifyCartSignature(
-  mandate: CartMandate
-): Promise<VerificationResult> {
-  if (!mandate.userSignature) {
-    return { valid: false, error: "Missing user signature" };
-  }
-
-  try {
-    const valid = await verifyTypedData({
-      address: mandate.user.id as Address,
-      domain: AP2_DOMAIN,
-      types: CART_MANDATE_TYPES,
-      primaryType: "CartMandate",
-      message: {
-        id: mandate.id,
-        merchantId: mandate.merchant.id,
-        total: mandate.cart.total,
-        currency: mandate.cart.currency,
-        expiresAt: mandate.expiresAt,
-      },
-      signature: mandate.userSignature as `0x${string}`,
-    });
-    return valid ? { valid: true } : { valid: false, error: "Invalid signature" };
-  } catch {
-    return { valid: false, error: "Signature verification failed" };
-  }
-}
-
-/**
- * Check Intent Mandate constraints against a proposed transaction.
- * Stateless — does NOT track budget across transactions.
- * For cross-merchant budget tracking, use the hosted Verifier.
+ * Check an Intent Mandate's constraints against a proposed transaction.
+ * Stateless — does NOT track budget across transactions. For cross-merchant
+ * budget tracking, use the hosted Verifier (VerifierClient).
  */
 export function checkConstraints(
   mandate: IntentMandate,
   transaction: { amount: string; merchantId?: string; items?: CartItem[] }
 ): VerificationResult {
-  // Validate the untrusted transaction at the boundary. `amount` is coerced to
-  // positive integer cents; malformed input can't slip past the checks below.
   const parsed = ConstraintTxSchema.safeParse(transaction);
   if (!parsed.success) {
     return { valid: false, error: parsed.error.issues[0]?.message ?? "Invalid transaction" };
   }
   const { amount, merchantId, items } = parsed.data;
-
   const c = mandate.constraints;
 
   // Temporal — parse explicitly and reject NaN. `new Date("garbage") > now` AND
-  // `< now` are both false (NaN compares false), which would silently disable the
-  // expiry / not-yet-valid gates on an unparseable or missing date.
+  // `< now` are both false, which would silently disable the expiry gate.
   const now = Date.now();
   const validFrom = Date.parse(mandate.validFrom);
   const validUntil = Date.parse(mandate.validUntil);
   if (Number.isNaN(validFrom) || Number.isNaN(validUntil)) {
     return { valid: false, error: "Mandate has an invalid or missing validFrom/validUntil" };
   }
-  if (validFrom > now) {
-    return { valid: false, error: `Mandate not yet valid (from ${mandate.validFrom})` };
-  }
-  if (validUntil < now) {
-    return { valid: false, error: "Mandate expired" };
-  }
+  if (validFrom > now) return { valid: false, error: `Mandate not yet valid (from ${mandate.validFrom})` };
+  if (validUntil < now) return { valid: false, error: "Mandate expired" };
 
   // Per-transaction max
   const maxAmount = parseCents(c.maxAmount);
@@ -153,10 +54,10 @@ export function checkConstraints(
     };
   }
 
-  // Merchant allowlist
-  if (merchantId && c.allowedMerchants?.length) {
-    if (!c.allowedMerchants.includes(merchantId)) {
-      return { valid: false, error: `Merchant ${merchantId} not in allowlist` };
+  // Merchant allowlist — if configured, a missing merchantId is a denial, not a skip.
+  if (c.allowedMerchants?.length) {
+    if (!merchantId || !c.allowedMerchants.includes(merchantId)) {
+      return { valid: false, error: `Merchant ${merchantId ?? "(none)"} not in allowlist` };
     }
   }
 
@@ -165,17 +66,18 @@ export function checkConstraints(
     return { valid: false, error: `Merchant ${merchantId} is blocked` };
   }
 
-  // Category check
-  if (c.categories?.length && items?.length) {
+  // Category — under a category restriction every item must carry an allowed
+  // category; a transaction with no items can't be category-verified, so deny.
+  if (c.categories?.length) {
+    if (!items?.length) {
+      return { valid: false, error: "Category-restricted mandate requires an itemized transaction" };
+    }
     for (const item of items) {
-      if (item.category && !c.categories.includes(item.category)) {
-        return { valid: false, error: `Category "${item.category}" not allowed` };
+      if (!item.category || !c.categories.includes(item.category)) {
+        return { valid: false, error: `Category "${item.category ?? "(none)"}" not allowed` };
       }
     }
   }
 
   return { valid: true };
 }
-
-// Re-export signing constants for custom implementations
-export { AP2_DOMAIN, INTENT_MANDATE_TYPES, CART_MANDATE_TYPES };
