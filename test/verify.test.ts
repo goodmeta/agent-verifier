@@ -93,3 +93,19 @@ test("checkConstraints rejects fractional/negative/NaN/garbage amounts", () => {
     assert.equal(checkConstraints(m, { amount: bad }).valid, false, `amount ${bad}`);
   }
 });
+
+// Was the bug: `new Date("garbage") > now` and `< now` are both false, so an
+// unparseable validFrom/validUntil silently passed the temporal gate.
+test("checkConstraints rejects unparseable validFrom/validUntil (no NaN fail-open)", () => {
+  const okTx = {
+    amount: "100",
+    merchantId: "m_ok",
+    items: [{ id: "x", name: "L", quantity: 1, unitPrice: "100", currency: "USDC", category: "coffee" }],
+  };
+  const badUntil = makeMandate(ADDR);
+  badUntil.validUntil = "not-a-date";
+  assert.equal(checkConstraints(badUntil, okTx).valid, false);
+  const badFrom = makeMandate(ADDR);
+  badFrom.validFrom = "garbage";
+  assert.equal(checkConstraints(badFrom, okTx).valid, false);
+});

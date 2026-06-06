@@ -123,14 +123,21 @@ export function checkConstraints(
   }
   const { amount, merchantId, items } = parsed.data;
 
-  const now = new Date();
   const c = mandate.constraints;
 
-  // Temporal
-  if (new Date(mandate.validFrom) > now) {
+  // Temporal — parse explicitly and reject NaN. `new Date("garbage") > now` AND
+  // `< now` are both false (NaN compares false), which would silently disable the
+  // expiry / not-yet-valid gates on an unparseable or missing date.
+  const now = Date.now();
+  const validFrom = Date.parse(mandate.validFrom);
+  const validUntil = Date.parse(mandate.validUntil);
+  if (Number.isNaN(validFrom) || Number.isNaN(validUntil)) {
+    return { valid: false, error: "Mandate has an invalid or missing validFrom/validUntil" };
+  }
+  if (validFrom > now) {
     return { valid: false, error: `Mandate not yet valid (from ${mandate.validFrom})` };
   }
-  if (new Date(mandate.validUntil) < now) {
+  if (validUntil < now) {
     return { valid: false, error: "Mandate expired" };
   }
 
