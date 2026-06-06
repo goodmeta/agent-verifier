@@ -2,9 +2,9 @@
  * Input validation schemas (zod).
  *
  * The untrusted boundary is the runtime spend request — what an agent wants to
- * spend right now. Mandate *integrity* is guaranteed separately by the EIP-712
- * signature (see verify.ts), so here we validate the request shapes and, above
- * all, the money field.
+ * spend right now. Mandate *integrity* is guaranteed separately by the ES256 JWS
+ * signature (see mandate-jwt.ts), so here we validate the request shapes and,
+ * above all, the money field.
  *
  * `Cents` is the shared money validator: a positive, safe-integer cent value,
  * accepted as a number or an all-digit string. It rejects fractional, negative,
