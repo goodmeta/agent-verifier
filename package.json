@@ -1,6 +1,6 @@
 {
   "name": "@goodmeta/agent-verifier",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Agent spending verification — signature verification, policy-based constraints, and Verifier API client",
   "type": "module",
   "main": "dist/index.js",
@@ -15,11 +15,11 @@
     "README.md"
   ],
   "devDependencies": {
-    "tsx": "^4.19.0",
-    "typescript": "^5.7.0"
+    "tsx": "4.21.0",
+    "typescript": "5.9.3"
   },
   "dependencies": {
-    "viem": "^2.23.0",
+    "viem": "2.52.2",
     "zod": "4.4.3"
   },
   "license": "MIT"

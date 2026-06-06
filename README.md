@@ -19,7 +19,7 @@ Or with the hosted verifier (cross-agent budget tracking):
 ```ts
 import { VerifierClient } from "@goodmeta/agent-verifier"
 
-const verifier = new VerifierClient({ apiKey: "gm_live_..." })
+const verifier = new VerifierClient({ apiKey: "gm_test_..." })
 const { approved, verificationId } = await verifier.verify(mandate, {
   amount: "3000",
   idempotencyKey: "tx-1",
@@ -118,7 +118,7 @@ When one agent's budget spans multiple services — Mistral AND Groq AND CoreWea
 import { VerifierClient } from "@goodmeta/agent-verifier"
 
 const verifier = new VerifierClient({
-  apiKey: "gm_live_...",
+  apiKey: "gm_test_...",
   baseUrl: "https://verifier.goodmeta.co",
 })
 
