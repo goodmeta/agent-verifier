@@ -23,7 +23,8 @@ import pathlib
 from cryptography.hazmat.primitives.asymmetric import ec
 from jwcrypto.jwk import JWK
 
-from ap2.sdk.mandate import MandateClient
+from ap2.sdk.mandate import MandateClient, _canonical_chain_segment
+from ap2.sdk.sdjwt import common
 from ap2.sdk.generated.open_payment_mandate import OpenPaymentMandate, AmountRange
 from ap2.sdk.generated.payment_mandate import PaymentMandate
 from ap2.sdk.generated.types.amount import Amount
@@ -31,6 +32,32 @@ from ap2.sdk.generated.types.merchant import Merchant
 from ap2.sdk.generated.types.payment_instrument import PaymentInstrument
 
 OUT = pathlib.Path(__file__).parent / "ap2-vectors.json"
+PAIRS_OUT = pathlib.Path(__file__).parent / "ap2-hash-pairs.json"
+
+
+def emit_hash_pairs(chain: str) -> dict:
+    """Per-segment byte-exact ground truth from AP2's common.py — drives P1
+    (parse/hash) tests: canonical serialization + sd_hash/issuer_jwt_hash/
+    disclosure digests must match AP2 exactly."""
+    segs = chain.split("~~")
+    total = len(segs)
+    out = []
+    for i, s in enumerate(segs):
+        cs = _canonical_chain_segment(s, i, total)
+        t = common.parse_token(cs)
+        out.append({
+            "compact": cs,
+            "issuerJwt": t.issuer_jwt,
+            "disclosures": t.disclosures,
+            "kbJwt": t.kb_jwt,
+            "sdAlg": t.sd_alg,
+            "sdJwt": t.sd_jwt,
+            "canonical": t.canonical,
+            "sdHash": common.compute_sd_hash(t),
+            "issuerJwtHash": common.compute_issuer_jwt_hash(t),
+            "disclosureDigests": {d: common.compute_disclosure_digest(d, t.sd_alg) for d in t.disclosures},
+        })
+    return {"rawSplitOnDoubleTilde": segs, "segments": out}
 
 
 def gen_key(kid: str) -> JWK:
@@ -146,8 +173,10 @@ def main() -> None:
     add("wrong_root_key", "Valid chain verified against an unrelated root key.",
         chain2, pub(other), "reject", reason="root signature does not verify under given key")
 
+    PAIRS_OUT.write_text(json.dumps(emit_hash_pairs(chain2), indent=2) + "\n")
     OUT.write_text(json.dumps(vectors, indent=2) + "\n")
     print(f"wrote {len(vectors)} vectors -> {OUT}")
+    print(f"wrote hash pairs -> {PAIRS_OUT}")
     for v in vectors:
         print(f"  - {v['name']}: expect={v['expect']}")
 

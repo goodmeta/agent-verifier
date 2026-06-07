@@ -7,7 +7,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "test": "node --import tsx --test test/*.test.ts",
+    "test": "node --import tsx --test test/*.test.ts test/ap2/*.test.ts",
     "demo": "tsx examples/single-merchant.ts"
   },
   "files": [
@@ -15,6 +15,7 @@
     "README.md"
   ],
   "devDependencies": {
+    "@types/node": "20.19.42",
     "tsx": "4.21.0",
     "typescript": "5.9.3"
   },
