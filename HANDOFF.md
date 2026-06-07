@@ -1,102 +1,102 @@
-# HANDOFF — 2026-06-06 (UTC)
+# HANDOFF — 2026-06-07 (UTC)
 
 ## TL;DR
-- **Stage:** OSS `@goodmeta/agent-verifier` hardened for production v0.3.0; pre-publish adversarial review returned **NOT READY**.
-- **Last shipped:** `73a3c21` — reject NaN dates in `checkConstraints` (expiry-bypass fix). All work committed locally; **nothing pushed, nothing published.**
-- **Next concrete action:** get operator's decision on CRIT-1 (sign-vs-enforce gap), then finish review fixes → `git push` → `npm publish` v0.3.0 → discharge aeoess #98.
-
-## ⚠️ Load-bearing facts (read first)
-- **Publish is HELD.** The pre-publish review found 1 CRITICAL + 1 HIGH. HIGH is fixed (`73a3c21`); **CRITICAL needs an operator design decision** (below) and is unresolved. Do NOT `npm publish` or `git push` until CRIT-1 is resolved and a re-review returns GOOD TO GO. Operator pre-approved push+publish *conditional on a clean review* — that condition is not yet met.
-- **CRIT-1 (sign ≠ enforce):** `INTENT_MANDATE_TYPES` (`src/verify.ts:19-28`) signs only `id, intent, maxAmount, currency, validUntil, budgetTotal`. `checkConstraints` enforces `validFrom, allowedMerchants, blockedMerchants, categories` — none signed. A malicious agent holding a validly-signed mandate can mutate its allowlist/categories/validFrom without breaking the signature → scope/merchant/category/expiry-window bypass. **The identical type set exists in `agent-verifier-pro/src/engine/verify.ts`** — same gap, deployed. Decision needed: (i) extend the signed EIP-712 payload (+`sign.ts` in lockstep) to cover enforced fields — but verify against AP2's canonical IntentMandate types first (interop), or (ii) if a reduced signature is intentional, change the README + `checkConstraints` docs to stop implying the signature protects scope. Do not change the crypto unilaterally.
-- **npm:** `@goodmeta/agent-verifier` published `0.2.0` (2026-03-24). `package.json` is now at `0.3.0` but **NOT published**.
+- **Stage:** building a REAL AP2 mandate verifier (dSD-JWT delegation chains) as v0.5, phased + golden-vector-driven. P0–P1 done.
+- **Last shipped:** `f59cf14` P1 — `parse`/`hash`/`jwk`, **byte-exact vs AP2's own SDK output**, tsc clean, 40 tests, 0 vulns.
+- **Next:** P2 — `src/ap2/sd-jwt.ts`: root SD-JWT verify (jose, ES256-pinned) + disclosure resolution (incl. AP2's `delegate_payload` wrapping + CMWallet inline-digest quirk); add `@sd-jwt/decode`.
 
 ## Where we are
-| Step | Status | Pass criterion |
-|---|---|---|
-| Money-parsing fix (zod) + tests | ✅ `c4160f3` | budget-inflation + parseInt bugs gone; tests lock them |
-| Harden VerifierClient | ✅ `7ed73bc` | timeout, typed VerifierError, 403-denial returned |
-| release()/refund()/createBudget() | ✅ `ea8f05e` | lifecycle parity w/ hosted verifier |
-| Deps pinned, vulns cleared, v0.3.0, CI/docs | ✅ `de98693` | `npm audit` = 0; CI build+test gate added |
-| Temporal NaN expiry-bypass fix | ✅ `73a3c21` | unparseable dates rejected; regression test |
-| **Pre-publish adversarial review** | ❌ **NOT READY** | a fresh uber-strict reviewer returns GOOD TO GO |
-| CRIT-1 resolution | ⏳ **operator decision** | sign-vs-enforce closed or documented |
-| MED-3 / LOW-5 fixes | ⏳ pending | fail-open allowlist/category; policy number guards |
-| `git push` | ❌ not done | after GOOD TO GO |
-| `npm publish` v0.3.0 | ❌ not done | after push; operator-confirmed |
-| Discharge aeoess #98 (crosswalk PR + comment) | ❌ pending | show-don't-ship; needs push live first |
+We discovered (this session) the OSS lib mis-modeled AP2 TWICE: EIP-712, then plain whole-payload JWS. Real AP2 mandates are **dSD-JWT delegation chains** (SD-JWT root + KB-SD-JWT hops, `cnf.jwk` hop-chaining, `sd_hash`/`issuer_jwt_hash` binding, ES256/P-256). Plain JWS is AP2's *receipt* format only. Plan in `PLAN-AP2.md` (3-angle red-teamed, hardened). Build phases:
 
-Gate now: `npm run build` clean, `npm test` 32/32 pass, `npm audit` 0 vulns.
+| Phase | Status | Pass criterion |
+|---|---|---|
+| P0 generator + payment vectors | ✅ `9871f91`/`70cebd8` | real AP2 chains minted → committed JSON |
+| P1 parse / hash / jwk | ✅ `f59cf14` | byte-exact vs AP2 (string AND digest); tsc clean |
+| P2 sd-jwt root verify + disclosure resolution | ⏳ NEXT | resolves root open-mandate payload == AP2's |
+| P3 kb-sd-jwt + chain (+3-hop/tamper/reorder vectors) | ⏳ | valid chains verify, all tampered reject |
+| P4 x5c fail-closed (+hand-built cert vectors) | ⏳ | trusted-root mandatory; full cert checks |
+| P5 types + constraints (max-flow) + payment/checkout wrappers | ⏳ | self-computed linkage; constraints match AP2 |
+| P6 fresh review → docs → publish v0.5 + deprecate <0.5 | ⏳ | review GOOD TO GO; operator publishes |
+
+Gate now: `npm run build` tsc clean, `npm test` 40/40, `npm audit` 0 vulns.
 
 ## Mandatory rules (do not skip)
-- **Never `npm publish` / `git push` without operator go** — outward-facing + irreversible. Publish only after a fresh review is GOOD TO GO.
-- **Security/money paths get an adversarial review BEFORE they ship** (this session's lesson — the review caught a real expiry bypass + the sign/enforce gap).
-- **Never claim "ready"/"shipped" without running the gate:** `npm run build && npm test && npm audit`.
-- **Exact dependency pins** — no `^`/`~` (supply chain). Currently: viem 2.52.2, zod 4.4.3, tsx 4.21.0, typescript 5.9.3.
-- **No `Co-Authored-By` in commits** (engineering.md).
-- **All money inputs go through `Cents`/`parseCents` (`src/schema.ts`)** — never add a money path that bypasses it.
-- **#98 discharge is show-don't-ship** — draft the crosswalk PR + comment, run the 5-perspective council, operator posts. 12h cooling-off default.
-- sanity-check-before-recommending; no-overclaim; verify-claims (verify the AP2 canonical-types claim before acting on CRIT-1).
+- **Match AP2's WIRE FORMAT byte-exact; be STRICTER than AP2 on trust decisions** (PLAN-AP2.md §1). AP2's reference fails open in places (x5c, aud/nonce, caller-supplied linkage) — we fail closed (PLAN §5 hardenings H1–H7).
+- **Golden vectors from AP2's own SDK are the source of truth** — verify every phase against `test/fixtures/ap2-*.json`, never against our own reading. (This is the anti-guessing backbone; two prior AP2 mistakes came from guessing.)
+- **Pin ES256 in OUR jose callback on every signature** — `@sd-jwt/*` pins no alg and never resolves header keys; key supplied out-of-band, header `jwk`/`jku`/`x5u`/`kid` never auto-resolved.
+- **Never claim "shipped"/"ready" without the gate:** `npm run build && npm test && npm audit`.
+- **Never `git push` or `npm publish` without explicit operator approval.** Nothing is pushed; npm is still at 0.2.0.
+- **Exact dependency pins** (no `^`/`~`): jose 6.2.3, zod 4.4.3, @types/node 20.19.42, tsx 4.21.0, typescript 5.9.3. When adding `@sd-jwt/*`, pin exact AND pin transitive `js-base64`.
+- **No `Co-Authored-By` in commits; short commit messages** (operator preference).
+- Global: sanity-check-before-recommending; no-overclaim; verify-claims; show-don't-ship for any public protocol-repo post (#98).
 
 ## Active task list (snapshot — IDs don't survive sessions)
-- **[in_progress]** OSS agent-verifier: resolve CRIT-1 → re-review → push → publish v0.3.0.
-- [pending] Discharge aeoess/agent-governance-vocabulary #98 (crosswalk `release`-cell PR + follow-up comment) — show-don't-ship; needs publish live.
-- [pending] MED-3/LOW-5 review fixes (fail-open allowlist/category; checkPolicy numeric-field guards) — fold with CRIT-1.
-- [pending] Cross-repo: same NaN-date + sign/enforce gap exists in `agent-verifier-pro`; decide whether to patch the deployed service.
-- [pending] verifier-pro: review/clean untracked `ADVERSARIAL-REVIEW-LOG.md`; its `HANDOFF.md` is stale ("prod runs pre-fix image" — false; prod is hardened as of `8908f67`-era deploys today).
+- **[in_progress]** agent-verifier v0.5: real AP2 dSD-JWT verifier — P0/P1 done, P2 next.
+- [pending] Discharge aeoess #98 (crosswalk `release`-cell PR + comment) — show-don't-ship; BLOCKED on v0.5 publish (was tied to release/refund, which now ships in v0.5).
+- [pending] verifier-pro: review/clean untracked `ADVERSARIAL-REVIEW-LOG.md`; its `HANDOFF.md` calls CRIT-1 open (resolved). Cross-repo.
 
-## Task rehydration — run these TaskCreate calls first thing
+## Task rehydration — run these first in a new session
 ```json
 {
-  "subject": "Resolve CRIT-1 then publish agent-verifier v0.3.0",
-  "activeForm": "Resolving CRIT-1 and publishing v0.3.0",
-  "description": "Pre-publish review (NOT READY) found the EIP-712 signed payload (INTENT_MANDATE_TYPES, src/verify.ts) does not cover constraint fields that checkConstraints enforces (allowedMerchants/blockedMerchants/categories/validFrom). DECISION (operator): (i) extend the signed types + sign.ts to cover enforced fields — FIRST verify against AP2's canonical IntentMandate EIP-712 types to avoid breaking interop; or (ii) keep reduced signature and update README + checkConstraints docs to not claim the signature protects scope. Then apply MED-3 (fail-open allowlist when merchantId omitted: deny; category with no items: deny) + LOW-5 (Number.isFinite guards on policy budgetTotal/maxPerEvent/currentSpend), add regression tests, re-run gate (build+test+audit), spawn a FRESH uber-strict reviewer until GOOD TO GO. THEN (operator pre-approved) git push origin main + npm publish (v0.3.0). Success: review GOOD TO GO + 0.3.0 on npm. Same gaps exist in agent-verifier-pro — decide separately whether to patch the deployed service."
+  "subject": "agent-verifier v0.5: real AP2 dSD-JWT verifier (P2 next)",
+  "activeForm": "Building AP2 dSD-JWT verifier (P2)",
+  "description": "Plan: PLAN-AP2.md (hardened, 3-angle red-teamed). Done: P0 generator+vectors (test/fixtures/gen_ap2_vectors.py + ap2-vectors.json + ap2-hash-pairs.json, minted from AP2's real SDK), P1 src/ap2/{parse,hash,jwk}.ts byte-exact vs AP2 (test/ap2/{parse-hash,jwk}.test.ts). NEXT P2: src/ap2/sd-jwt.ts — verify the root issuer JWT signature with jose compactVerify({algorithms:['ES256']}) using the provider key (NOT @sd-jwt's verifier; @sd-jwt pins no alg + must never resolve header keys), then resolve disclosures: standard RFC9901 _sd via @sd-jwt/decode, PLUS AP2's delegate_payload-as-array-with-own-_sd and the CMWallet 'digest strings directly in delegate_payload' quirk (port from AP2 chain.py::_inline_sd_claims + kb_sd_jwt.py::_resolve_delegate_payload). Add @sd-jwt/decode (exact-pin; pin transitive js-base64). Golden-test: root verify of valid_payment_2hop must yield expectedPayloads[0] (the OpenPaymentMandate). Then P3 kb+chain, P4 x5c, P5 types/constraints/wrappers, P6 review+publish. Regen vectors: /tmp/ap2venv/bin/python test/fixtures/gen_ap2_vectors.py (venv has AP2 SDK). Gate each phase: npm run build && npm test && npm audit. SUCCESS: each phase byte-exact-green vs vectors; final fresh adversarial review GOOD TO GO before publish."
 }
 ```
 ```json
 {
-  "subject": "Discharge aeoess #98 (crosswalk PR + comment)",
+  "subject": "Discharge aeoess #98 after v0.5 publish",
   "activeForm": "Drafting #98 crosswalk PR + comment",
-  "description": "After agent-verifier v0.3.0 is pushed/published with release/refund, discharge Eric's 2026-06-04 public commitment on aeoess/agent-governance-vocabulary#98 (comment 4619176813). (1) Draft a PR updating crosswalk/budget_reservation.yaml goodmeta `release` cell from '-' (folded into refund) to first-class release, now shipped in @goodmeta/agent-verifier. (2) Draft a #98 follow-up comment pointing at the published release/refund. BOTH show-don't-ship: run 5-perspective council, stage gh commands, operator posts. verify-claims: confirm the cell text + that release/refund is live in the named repo before claiming."
+  "description": "AFTER agent-verifier v0.5 is published with real AP2 release/refund support, discharge Eric's 2026-06-04 commitment on aeoess/agent-governance-vocabulary#98 (comment 4619176813): (1) crosswalk budget_reservation.yaml goodmeta `release` cell PR; (2) #98 follow-up. show-don't-ship: 5-perspective council, stage gh, operator posts. verify-claims first."
 }
 ```
 
 ## What changed this session (chronological, latest first)
-- `73a3c21` Reject NaN dates in checkConstraints — expiry-bypass fix (review HIGH). WHY: unparseable validFrom/validUntil silently passed the temporal gate.
-- `de98693` Pin deps, clear ws advisory, add CI/SECURITY/CHANGELOG; v0.3.0. WHY: supply-chain + 0 vulns + a real build/test CI gate (was npm-audit only).
-- `ea8f05e` Add release()/refund()/createBudget() — lifecycle parity. WHY: enables an honest #98 discharge against the named repo.
-- `7ed73bc` Harden VerifierClient: timeouts, typed errors, no blind error parsing. WHY: client blindly `res.json()`'d every response, hid auth/server errors.
-- `c4160f3` Validate money inputs with zod; fix budget-inflation bug; add tests. WHY: checkPolicy approved negatives and inflated budget; checkConstraints parseInt-truncated.
-- (pre-session HEAD: `5ed04e6` chore(ci): add npm audit gate.)
+- `70cebd8` sync ap2-vectors.json with hash-pairs (same generator run). WHY: generator is non-deterministic; keep the two fixtures consistent.
+- `f59cf14` **P1** parse/hash/jwk byte-exact vs AP2 + @types/node. WHY: canonical serialization + binding-hash math are the dangerous core; proven against reference.
+- `9871f91` **P0** AP2 golden-vector generator + payment vectors. WHY: anti-guessing backbone — test against AP2's real bytes.
+- `7692f6f` hardened AP2 dSD-JWT plan (3-angle red-teamed). WHY: plan attacked before coding; caught the `_canonical_chain_segment` split (would've broken every binding hash), x5c-fails-open, cnf-smuggling.
+- `d2d0d66`/`e741039` doc fixes (EIP-712→ES256 JWS) in SECURITY.md/schema.ts.
+- `3228e3d` switch mandates EIP-712→ES256 JWS (v0.4). WHY: later found this matches AP2 *receipts* not *mandates* — held, superseded by v0.5.
+- `73a3c21` reject NaN dates in checkConstraints (expiry-bypass fix, from adversarial review).
+- `de98693` pin deps, clear ws advisory, CI/SECURITY/CHANGELOG, v0.3.0.
+- `ea8f05e` add release()/refund()/createBudget() to client.
+- `7ed73bc` harden VerifierClient (timeouts, typed errors, no blind error parse).
+- (`c4160f3` validate money inputs with zod; fix budget-inflation bug — earliest session commit.)
 
 ## Open known issues
-- **CRIT-1** sign≠enforce (`src/verify.ts:19-28` vs `checkConstraints`) — operator decision; publish blocked.
-- **MED-3** fail-open: `checkConstraints` skips the merchant allowlist when `merchantId` is omitted, and the category gate when `items` is omitted (`src/verify.ts`). Fix: deny when a configured restriction's governing field is absent.
-- **LOW-4** EIP-712 domain has no chainId/verifyingContract and no replay nonce → a signed mandate is replayable across deployments/time on the stateless path (largely AP2-inherent). Document as a non-guarantee.
-- **LOW-5** `checkPolicy` trusts un-validated `budgetTotal`/`maxPerEvent`/`currentSpend` (`src/policy.ts`) — add `Number.isFinite` guards.
-- Cross-repo: `agent-verifier-pro` shares the NaN-date + sign/enforce gaps (deployed).
+- **Generator non-determinism:** `gen_ap2_vectors.py` generates fresh random EC keys per run, so re-running CHANGES the committed vectors and dirties git. Committed JSON is the source of truth — do NOT re-run casually. FIX (do in P2/P3): seed key generation (derive EC keys from fixed bytes) so vectors are reproducible.
+- **v0.4 (ES256-JWS-over-whole-mandate) is committed but MUST NOT be published** — it matches AP2's receipt format, not its mandate format. v0.5 (real dSD-JWT) supersedes. npm is still 0.2.0 (the old EIP-712 version, publicly published 2026-03-24, immutable).
+- **`mandate-jwt.ts` still named `signMandate`/`verifyMandate`** — rename to `signReceipt`/`verifyReceipt` in P6 (it's the receipt format). Legacy camelCase `IntentMandate`/`CartMandate` to be quarantined.
+- Deferred vectors: 3-hop / checkout / x5c / alg-swap / expired / disclosure-reorder land with P3/P4/P5 (PLAN §7).
+- No project `CLAUDE.md` in this repo (rules live in PLAN-AP2.md + global `~/.claude/rules`).
 
 ## Process state
-- No background processes running for this repo. The pre-publish review subagent has completed (NOT READY).
-- Gate verdict (last run): PASS — build clean, 32/32 tests, 0 vulns.
-- Nothing pushed; working tree clean except this HANDOFF.md.
+- No background processes/daemons. The 5 subagents used this session (reviews + AP2 study + 3-angle plan red team) all COMPLETED.
+- Vector-regen tool: Python venv at `/tmp/ap2venv` with AP2 SDK installed (`import ap2.sdk` works). Ephemeral (/tmp) — recreate with `python3.13 -m venv /tmp/ap2venv && /tmp/ap2venv/bin/pip install "git+https://github.com/google-agentic-commerce/AP2.git"`.
+- Last gate verdict: PASS — tsc clean, 40/40 tests, 0 vulns.
+- Nothing pushed; nothing published.
 
 ## Files modified this session
-- `src/`: `schema.ts` (new — zod Cents + boundary schemas), `verify.ts`, `policy.ts`, `client.ts`, `index.ts`, `types.ts`.
-- `test/`: `schema.test.ts`, `policy.test.ts`, `verify.test.ts`, `client.test.ts` (all new; 32 cases, node:test).
-- Root/config: `package.json`, `package-lock.json`, `README.md`, `SECURITY.md` (new), `CHANGELOG.md` (new), `.github/workflows/ci.yml` (new).
+- `src/`: `schema.ts`, `verify.ts`, `policy.ts`, `client.ts`, `types.ts`, `index.ts`, `mandate-jwt.ts` (new); `src/ap2/{parse,hash,jwk}.ts` (new, P1).
+- `test/`: `schema/policy/verify/client/mandate-jwt.test.ts`; `test/ap2/{parse-hash,jwk}.test.ts` (new); `test/fixtures/gen_ap2_vectors.py` + `ap2-vectors.json` + `ap2-hash-pairs.json` (new).
+- docs/config: `PLAN-AP2.md` (new), `CHANGELOG.md`, `SECURITY.md`, `README.md`, `.github/workflows/ci.yml`, `package.json`, `package-lock.json`.
 
-## Anti-patterns (things the next agent must NOT do)
-- Don't `npm publish` / `git push` before a FRESH review returns GOOD TO GO (publish is irreversible).
-- Don't change the EIP-712 signed types without first verifying AP2's canonical IntentMandate types — silent interop break.
-- Don't claim "production-ready"/"shipped" off self-written tests — only a fresh uber-strict reviewer's GOOD TO GO counts.
-- Don't add a money path that bypasses `Cents`.
-- Don't post the #98 crosswalk PR/comment yourself — show-don't-ship; operator posts.
+## Anti-patterns (the next agent must NOT do)
+- **Don't publish v0.4** — it does not verify real AP2 mandates (receipt format). Only publish after v0.5's real dSD-JWT verifier + a fresh adversarial review returns GOOD TO GO.
+- **Don't guess AP2** — every byte must be checked against the committed golden vectors / AP2's source. Two prior mistakes came from reading a plausible-looking file (jwt_helper = receipts) instead of the mandate path.
+- **Don't let `@sd-jwt/*` verify signatures or resolve keys** — jose, ES256-pinned, key out-of-band.
+- **Don't re-run the generator and commit only one of the two JSON files** — they must come from the same run (or seed the keys first).
+- **Don't `git push` / `npm publish` without operator approval.** Don't claim "shipped" without the gate.
+- **Don't post the #98 crosswalk PR/comment yourself** — show-don't-ship.
 
 ## Studies / parked items
-- LOW-4 replay/domain hardening (chainId/verifyingContract/nonce) — revisit if/when AP2 canon adds them; for now document the stateless-path non-guarantee.
+- `PLAN-AP2.md` §11 hardest items: `_canonical_chain_segment`+parse byte-exactness (done in P1), disclosure resolution + CMWallet quirk (P2), cnf-bound-to-signed-content + single-cnf (P3), x5c fail-closed (P4), LineItems max-flow port (P5).
+- Cross-repo: `agent-verifier-pro` is DEPLOYED + hardened (verifier.goodmeta.co; rounds 1-7 fixes live as of 2026-06-06). It shares AP2's sign≠enforce + NaN-date traits on its own EIP-712 path — decide separately whether to migrate it to the v0.5 dSD-JWT verifier.
+- Vault: `Projects/PROGRESS.md` "Assets built" tracks both repos.
 
 ## Discipline failure post-mortem (most recent)
-No incident this session — the opposite. The pre-publish adversarial review (operator-requested) caught a real expiry-bypass (NaN dates) and a sign/enforce scope gap BEFORE anything was published, exactly as the "review money/security paths before they ship" rule intends. The HIGH was fixed with a regression test; the CRITICAL was escalated to the operator rather than patched unilaterally (it's an interop-sensitive crypto change).
+No shipped incident — the opposite, and it's the session's main story. The lib had mis-implemented AP2 (EIP-712) and that was already public on npm 0.2.0. This session almost shipped a SECOND wrong model (plain ES256-JWS "to match AP2") — caught by reading AP2's actual SDK (jwt_helper = receipts; mandates = SD-JWT chains) and a 3-angle red team that attacked the plan BEFORE any code. The structural fix preventing recurrence: golden vectors minted from AP2's own SDK (`test/fixtures/`), tested byte-exact, so a wrong model can no longer pass. Operator's "read the spec properly → plan → attack → execute" cadence is now the rule for this build.
 
 ## Next concrete action
-Get the operator's CRIT-1 decision (extend signed payload vs. document the limitation); then apply remaining review fixes, re-run a fresh review to GOOD TO GO, and only then `git push` + `npm publish` v0.3.0.
+Start P2: create `src/ap2/sd-jwt.ts` (root issuer-JWT verify via jose `compactVerify({algorithms:['ES256']})` + disclosure resolution incl. CMWallet quirk), `npm i -D --save-exact @sd-jwt/decode@<latest>` (pin transitive js-base64), and a `test/ap2/sd-jwt.test.ts` asserting the root verify of `valid_payment_2hop` yields `expectedPayloads[0]`.
