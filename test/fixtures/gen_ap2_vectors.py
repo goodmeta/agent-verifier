@@ -3,28 +3,47 @@
 
 Mints REAL AP2 mandate chains using AP2's own SDK, so the TypeScript verifier is
 tested against the reference implementation's actual output — not our reading of
-the spec. Emits test/fixtures/ap2-vectors.json.
+the spec. Pinned to AP2 commit e1ea56db72a6385bce3e5c1112b3a56ce60acb43.
+
+STABLE IDENTITIES (partial determinism): signing keys are derived from fixed
+labels (stable kids + x/y coordinates) and the KB-SD-JWT `iat` clock is frozen,
+so role identities and timestamps don't churn across runs.
+CAVEAT — re-running is NOT byte-identical: ECDSA signing uses a random nonce
+(the `cryptography` lib does not implement RFC-6979 deterministic ECDSA) and
+SD-JWT disclosure salts are random. Signatures live inside the issuer JWT and
+cascade through `sd_hash`, so the whole chain changes every run regardless of the
+fixed keys. The committed JSON is the source of truth; regenerate only when AP2
+itself changes, and commit BOTH json files from the SAME run.
+
+Multi-hop construction is the byte-for-byte port of AP2's own
+`ap2/tests/chain_tests.py::test_three_step_bank_sa_cp_merchant_flow`:
+low-level `sd_jwt.create` (root) + `kb_sd_jwt.create` per hop (each binding to the
+immediately-preceding SINGLE segment), assembled as `root[:-1] ~~ mid[:-1] ~~ leaf`.
 
 Setup (one-time):
     python3.13 -m venv /tmp/ap2venv
-    /tmp/ap2venv/bin/pip install "git+https://github.com/google-agentic-commerce/AP2.git"
+    /tmp/ap2venv/bin/pip install \
+        "git+https://github.com/google-agentic-commerce/AP2.git@e1ea56db72a6385bce3e5c1112b3a56ce60acb43"
 Run:
     /tmp/ap2venv/bin/python test/fixtures/gen_ap2_vectors.py
 
 Each vector: {name, description, chain, rootKey(pub JWK), expectedAud,
 expectedNonce, expect: "valid"|"reject", reason?, expectedPayloads?}.
-Tampered/crafted variants exercise the attack classes from PLAN-AP2.md §7.
+Every "reject" vector is CONFIRMED to be rejected by AP2's own verifier at mint
+time (so it is a true negative per AP2, not merely per our assumption).
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import pathlib
+from types import SimpleNamespace
 
 from cryptography.hazmat.primitives.asymmetric import ec
 from jwcrypto.jwk import JWK
 
 from ap2.sdk.mandate import MandateClient, _canonical_chain_segment
-from ap2.sdk.sdjwt import common
+from ap2.sdk.sdjwt import common, kb_sd_jwt, sd_jwt
 from ap2.sdk.generated.open_payment_mandate import OpenPaymentMandate, AmountRange
 from ap2.sdk.generated.payment_mandate import PaymentMandate
 from ap2.sdk.generated.types.amount import Amount
@@ -34,35 +53,22 @@ from ap2.sdk.generated.types.payment_instrument import PaymentInstrument
 OUT = pathlib.Path(__file__).parent / "ap2-vectors.json"
 PAIRS_OUT = pathlib.Path(__file__).parent / "ap2-hash-pairs.json"
 
+AUD, NONCE = "merchant", "nonce-1"
 
-def emit_hash_pairs(chain: str) -> dict:
-    """Per-segment byte-exact ground truth from AP2's common.py — drives P1
-    (parse/hash) tests: canonical serialization + sd_hash/issuer_jwt_hash/
-    disclosure digests must match AP2 exactly."""
-    segs = chain.split("~~")
-    total = len(segs)
-    out = []
-    for i, s in enumerate(segs):
-        cs = _canonical_chain_segment(s, i, total)
-        t = common.parse_token(cs)
-        out.append({
-            "compact": cs,
-            "issuerJwt": t.issuer_jwt,
-            "disclosures": t.disclosures,
-            "kbJwt": t.kb_jwt,
-            "sdAlg": t.sd_alg,
-            "sdJwt": t.sd_jwt,
-            "canonical": t.canonical,
-            "sdHash": common.compute_sd_hash(t),
-            "issuerJwtHash": common.compute_issuer_jwt_hash(t),
-            "disclosureDigests": {d: common.compute_disclosure_digest(d, t.sd_alg) for d in t.disclosures},
-        })
-    return {"rawSplitOnDoubleTilde": segs, "segments": out}
+# Frozen issuance clock (a fixed 2026 timestamp, comfortably in the past) so iat
+# is deterministic AND always passes a verifier's "iat not in the future" check.
+FROZEN_NOW = 1780000000
+kb_sd_jwt.time = SimpleNamespace(time=lambda: FROZEN_NOW)
+
+# NIST P-256 group order; deterministic scalars are reduced into [1, n-1].
+_P256_ORDER = 0xFFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551
 
 
 def gen_key(kid: str) -> JWK:
-    k = ec.generate_private_key(ec.SECP256R1())
-    jwk = JWK.from_pyca(k)
+    """Deterministically derive a P-256 signing JWK from a fixed label."""
+    scalar = int.from_bytes(hashlib.sha256(kid.encode()).digest(), "big") % (_P256_ORDER - 1) + 1
+    priv = ec.derive_private_key(scalar, ec.SECP256R1())
+    jwk = JWK.from_pyca(priv)
     d = json.loads(jwk.export())
     d["kid"] = kid
     return JWK.from_json(json.dumps(d))
@@ -87,19 +93,62 @@ def payment(**ov) -> PaymentMandate:
     return PaymentMandate(**d)
 
 
-def tamper_root_payload(chain: str) -> str:
-    """Flip one char in the root issuer-JWT payload segment → breaks root sig."""
-    seg0 = chain.split("~~")[0]
-    ij = seg0.split("~")[0]  # header.payload.sig
-    h, p, s = ij.split(".")
-    p2 = p[:-1] + ("A" if p[-1] != "A" else "B")
-    new_ij = ".".join([h, p2, s])
-    return chain.replace(ij, new_ij, 1)
+def root_open(issuer: JWK, holder_pub: JWK) -> str:
+    """Root SD-JWT: open payment mandate (cnf = holder) signed by issuer."""
+    return sd_jwt.create(
+        payload=OpenPaymentMandate(constraints=[AmountRange(currency="USD", max=5000)], cnf=make_cnf(holder_pub)),
+        issuer_key=issuer,
+    ).sd_jwt_issuance
+
+
+def hop(prev_segment: str, holder: JWK, payload, *, aud: str, nonce: str, hash_mode: str = "sd_hash") -> str:
+    """One KB-SD-JWT delegation hop bound to the previous SINGLE segment."""
+    return kb_sd_jwt.create(
+        prev_token=common.parse_token(prev_segment),
+        holder_key=holder,
+        payload=payload,
+        aud=aud,
+        nonce=nonce,
+        hash_mode=hash_mode,
+    ).sd_jwt_issuance
+
+
+def join(*segments: str) -> str:
+    """Assemble a dSD-JWT chain: strip the trailing '~' from every non-final
+    segment, then join with '~~' (AP2 chain_tests.py construction)."""
+    parts = []
+    for i, s in enumerate(segments):
+        last = i == len(segments) - 1
+        parts.append(s if last else (s[:-1] if s.endswith("~") else s))
+    return "~~".join(parts)
+
+
+def emit_hash_pairs(chain: str) -> dict:
+    """Per-segment byte-exact ground truth from AP2's common.py — drives P1
+    (parse/hash) tests."""
+    segs = chain.split("~~")
+    total = len(segs)
+    out = []
+    for i, s in enumerate(segs):
+        cs = _canonical_chain_segment(s, i, total)
+        t = common.parse_token(cs)
+        out.append({
+            "compact": cs,
+            "issuerJwt": t.issuer_jwt,
+            "disclosures": t.disclosures,
+            "kbJwt": t.kb_jwt,
+            "sdAlg": t.sd_alg,
+            "sdJwt": t.sd_jwt,
+            "canonical": t.canonical,
+            "sdHash": common.compute_sd_hash(t),
+            "issuerJwtHash": common.compute_issuer_jwt_hash(t),
+            "disclosureDigests": {d: common.compute_disclosure_digest(d, t.sd_alg) for d in t.disclosures},
+        })
+    return {"rawSplitOnDoubleTilde": segs, "segments": out}
 
 
 def main() -> None:
     h = MandateClient()
-    AUD, NONCE = "merchant", "nonce-1"
     vectors: list[dict] = []
 
     def add(name, description, chain, root, expect, *, aud=AUD, nonce=NONCE, reason=None, payloads=None):
@@ -113,63 +162,80 @@ def main() -> None:
             v["expectedPayloads"] = payloads
         vectors.append(v)
 
-    # ── Valid 2-hop payment chain (root SD-JWT signed by user, terminal hop by agent) ──
-    user, agent = gen_key("user-1"), gen_key("agent-1")
-    open_tok = h.create(
-        payloads=[OpenPaymentMandate(constraints=[AmountRange(currency="USD", max=5000)], cnf=make_cnf(agent))],
-        issuer_key=user,
-    )
-    chain2 = h.present(
-        holder_key=agent, mandate_token=open_tok,
-        payloads=[payment(payment_amount=Amount(amount=1000, currency="USD"))],
-        aud=AUD, nonce=NONCE,
-    )
-    payloads2 = h.verify(token=chain2, key_or_provider=lambda _t: JWK.from_json(user.export_public()),
-                         expected_aud=AUD, expected_nonce=NONCE)
+    def ap2_verify(chain, root_pub, *, aud=AUD, nonce=NONCE):
+        return h.verify(token=chain, key_or_provider=lambda _t: JWK.from_json(root_pub.export_public()),
+                        expected_aud=aud, expected_nonce=nonce)
+
+    def assert_ap2_rejects(name, chain, root_pub, *, aud=AUD, nonce=NONCE):
+        try:
+            ap2_verify(chain, root_pub, aud=aud, nonce=nonce)
+        except Exception:  # noqa: BLE001 — confirming AP2 itself rejects this vector
+            return
+        raise SystemExit(f"[FATAL] reject-vector '{name}' was ACCEPTED by AP2 — not a true negative")
+
+    # Deterministic role keys.
+    user, agent, cp, other = gen_key("user-1"), gen_key("agent-1"), gen_key("cp-1"), gen_key("other-1")
+
+    # ── Valid 2-hop (root SD-JWT by user + terminal KB-SD-JWT by agent) ──
+    root2 = root_open(user, agent)
+    leaf2 = hop(root2, agent, payment(), aud=AUD, nonce=NONCE)
+    chain2 = join(root2, leaf2)
+    payloads2 = ap2_verify(chain2, user)
     add("valid_payment_2hop", "Root SD-JWT (user) + terminal KB-SD-JWT (agent), in budget.",
         chain2, pub(user), "valid", payloads=payloads2)
 
-    # ── Valid 3-hop payment chain (user → agent[intermediate] → cp[terminal]) ──
-    cp = gen_key("cp-1")
-    try:
-        mid = h.present(
-            holder_key=agent, mandate_token=open_tok,
-            payloads=[OpenPaymentMandate(constraints=[AmountRange(currency="USD", max=5000)], cnf=make_cnf(cp))],
-            aud="cp", nonce="nonce-cp",
-        )
-        chain3 = h.present(
-            holder_key=cp, mandate_token=mid,
-            payloads=[payment(payment_amount=Amount(amount=1000, currency="USD"))],
-            aud=AUD, nonce=NONCE,
-        )
-        payloads3 = h.verify(token=chain3, key_or_provider=lambda _t: JWK.from_json(user.export_public()),
-                             expected_aud=AUD, expected_nonce=NONCE)
-        add("valid_payment_3hop", "user root → agent intermediate (cnf=cp) → cp terminal.",
-            chain3, pub(user), "valid", payloads=payloads3)
-    except Exception as e:  # noqa: BLE001
-        print(f"[warn] 3-hop mint failed ({e}); skipping that vector")
+    # ── Valid 3-hop (user root -> agent intermediate[cnf=cp] -> cp terminal) ──
+    mid3 = hop(root2, agent, OpenPaymentMandate(constraints=[AmountRange(currency="USD", max=5000)], cnf=make_cnf(cp)),
+               aud="cp-agent", nonce="cp-nonce")
+    leaf3 = hop(mid3, cp, payment(), aud=AUD, nonce=NONCE)
+    chain3 = join(root2, mid3, leaf3)
+    payloads3 = ap2_verify(chain3, user)
+    add("valid_payment_3hop", "user root -> agent intermediate (cnf=cp) -> cp terminal.",
+        chain3, pub(user), "valid", payloads=payloads3)
 
-    # ── Tampered: flipped root payload byte → signature must fail ──
+    # ── Valid 3-hop using issuer_jwt_hash binding on the intermediate hop ──
+    mid3i = hop(root2, agent, OpenPaymentMandate(constraints=[AmountRange(currency="USD", max=5000)], cnf=make_cnf(cp)),
+                aud="cp-agent", nonce="cp-nonce", hash_mode="issuer_jwt_hash")
+    leaf3i = hop(mid3i, cp, payment(), aud=AUD, nonce=NONCE)
+    chain3i = join(root2, mid3i, leaf3i)
+    payloads3i = ap2_verify(chain3i, user)
+    add("valid_payment_3hop_issuer_jwt_hash", "3-hop where the intermediate hop binds via issuer_jwt_hash.",
+        chain3i, pub(user), "valid", payloads=payloads3i)
+
+    # ── Tampered: flipped root payload byte → root signature/parse fails ──
+    seg0 = chain2.split("~~")[0]
+    ij = seg0.split("~")[0]
+    hh, pp, ss = ij.split(".")
+    pp2 = pp[:-1] + ("A" if pp[-1] != "A" else "B")
+    chain_tamper = chain2.replace(ij, ".".join([hh, pp2, ss]), 1)
+    assert_ap2_rejects("tampered_root_payload", chain_tamper, user)
     add("tampered_root_payload", "One byte flipped in the root issuer-JWT payload.",
-        tamper_root_payload(chain2), pub(user), "reject", reason="root signature invalid")
+        chain_tamper, pub(user), "reject", reason="root signature invalid")
 
-    # ── Crafted: terminal hop signed by the WRONG key (cnf names agent, signed by `other`) ──
-    other = gen_key("other-1")
-    wrong = h.present(
-        holder_key=other, mandate_token=open_tok,
-        payloads=[payment(payment_amount=Amount(amount=1000, currency="USD"))],
-        aud=AUD, nonce=NONCE,
-    )
+    # ── Crafted: terminal hop signed by the WRONG key (cnf names agent) ──
+    wrong = join(root2, hop(root2, other, payment(), aud=AUD, nonce=NONCE))
+    assert_ap2_rejects("wrong_cnf_key", wrong, user)
     add("wrong_cnf_key", "Terminal hop signed by a key not named in the prior cnf.jwk.",
         wrong, pub(user), "reject", reason="hop signature does not verify under prev cnf.jwk")
 
-    # ── aud / nonce mismatch (valid chain, wrong expected values) ──
+    # ── Binding mismatch: terminal bound to a DIFFERENT root (sd_hash wrong) ──
+    other_root = root_open(user, agent)
+    leaf_bad = hop(other_root, agent, payment(), aud=AUD, nonce=NONCE)  # binds to other_root
+    chain_bind = join(root2, leaf_bad)  # but presented after root2
+    assert_ap2_rejects("binding_sd_hash_mismatch", chain_bind, user)
+    add("binding_sd_hash_mismatch", "Terminal hop's sd_hash binds a different root than the one presented.",
+        chain_bind, pub(user), "reject", reason="sd_hash mismatch")
+
+    # ── aud / nonce mismatch (valid chain, verifier expects different values) ──
+    assert_ap2_rejects("aud_mismatch", chain2, user, aud="WRONG-aud")
     add("aud_mismatch", "Valid chain, verifier expects a different audience.",
         chain2, pub(user), "reject", aud="WRONG-aud", reason="terminal aud mismatch")
+    assert_ap2_rejects("nonce_mismatch", chain2, user, nonce="WRONG-nonce")
     add("nonce_mismatch", "Valid chain, verifier expects a different nonce.",
         chain2, pub(user), "reject", nonce="WRONG-nonce", reason="terminal nonce mismatch")
 
     # ── Wrong root key (valid chain verified against an unrelated key) ──
+    assert_ap2_rejects("wrong_root_key", chain2, other)
     add("wrong_root_key", "Valid chain verified against an unrelated root key.",
         chain2, pub(other), "reject", reason="root signature does not verify under given key")
 
@@ -178,7 +244,7 @@ def main() -> None:
     print(f"wrote {len(vectors)} vectors -> {OUT}")
     print(f"wrote hash pairs -> {PAIRS_OUT}")
     for v in vectors:
-        print(f"  - {v['name']}: expect={v['expect']}")
+        print(f"  - {v['name']}: expect={v['expect']}" + (f" ({len(v['expectedPayloads'])} payloads)" if v.get("expectedPayloads") else ""))
 
 
 if __name__ == "__main__":

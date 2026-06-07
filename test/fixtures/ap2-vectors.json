@@ -2,13 +2,13 @@
   {
     "name": "valid_payment_2hop",
     "description": "Root SD-JWT (user) + terminal KB-SD-JWT (agent), in budget.",
-    "chain": "eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImV4YW1wbGUrc2Qtand0IiwgImtpZCI6ICJ1c2VyLTEifQ.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogImZxY25iQ0lZaDJIZnlCUGwyaGV1aldwU0hFQ1N3TUJmSTJkLWdQSWwwVm8ifV0sICJfc2RfYWxnIjogInNoYS0yNTYifQ.c4p6CV39oxZQtgs7Pj6a5hH-tX62TSSBVt-1miyerpvku3H-ldJvEWxj-yWFjuZzwSoqxvl4KwoiCzz9qqybXA~WyJhQ0ktMDdIZVBVZUdpYmVnN3gwbzBBIiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50Lm9wZW4uMSIsICJjb25zdHJhaW50cyI6IFt7InR5cGUiOiAicGF5bWVudC5hbW91bnRfcmFuZ2UiLCAiY3VycmVuY3kiOiAiVVNEIiwgIm1heCI6IDUwMDB9XSwgImNuZiI6IHsiandrIjogeyJjcnYiOiAiUC0yNTYiLCAia2lkIjogImFnZW50LTEiLCAia3R5IjogIkVDIiwgIngiOiAiZzBhRXU1dFMxR285MHJxOS1yYlM2NldSTXJSeUFBYTdFS3ZnaktoaS1wVSIsICJ5IjogIklVajltVmE0LTBZR0ZhajZmdktVRk5zYVFkQjBnR2RWN2F1clJzOEpYSjAifX19XQ~~eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImtiK3NkLWp3dCIsICJraWQiOiAiYWdlbnQtMSJ9.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogIm5jZXA3cC1lbzdJaGdweFhqRV9EV1BjX016U2cyd2Jjcld5R2hfOFdNeVUifV0sICJpYXQiOiAxNzgwNzkzMDIyLCAiYXVkIjogIm1lcmNoYW50IiwgIm5vbmNlIjogIm5vbmNlLTEiLCAic2RfaGFzaCI6ICJIOTJhYlJoQnRTd193OUVwdkpMWG9KbFphYlY5Y2F2NEhtM3R4U2MtQXZFIiwgIl9zZF9hbGciOiAic2hhLTI1NiJ9.4za6VfktxoyFHvF_hoF0OBs6BfqcpVHAAN4P1GaiT3WJwofb5gVlT-wYp3SrCl1Q73Ze6BZb2AxNnoKDsnU34g~WyJMRkE2YllJZzNlSklHOHhUZTVDclJBIiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50LjEiLCAidHJhbnNhY3Rpb25faWQiOiAidHhfMSIsICJwYXllZSI6IHsiaWQiOiAicy0xIiwgIm5hbWUiOiAiU2hvcCJ9LCAicGF5bWVudF9hbW91bnQiOiB7ImFtb3VudCI6IDEwMDAsICJjdXJyZW5jeSI6ICJVU0QifSwgInBheW1lbnRfaW5zdHJ1bWVudCI6IHsiaWQiOiAicGktMSIsICJ0eXBlIjogImNyZWRpdCJ9fV0~",
+    "chain": "eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImV4YW1wbGUrc2Qtand0IiwgImtpZCI6ICJ1c2VyLTEifQ.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogInpzNzRoX01kZzQyaDJDV201XzZRN3JPTnVITHZxNHd4VEtQNHpnQVo1UjQifV0sICJfc2RfYWxnIjogInNoYS0yNTYifQ.ADeqHwwbxJFg5EsVIMU7TMBxHMB5VtoOROVtSIEGBe0zs7r9A3OdFpLsh1NKZSk_Q-SUqjDR8hq-u8IWgqACEQ~WyJrOW5LNm1vdzhpRXV4eHNpNm5QbzFBIiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50Lm9wZW4uMSIsICJjb25zdHJhaW50cyI6IFt7InR5cGUiOiAicGF5bWVudC5hbW91bnRfcmFuZ2UiLCAiY3VycmVuY3kiOiAiVVNEIiwgIm1heCI6IDUwMDB9XSwgImNuZiI6IHsiandrIjogeyJjcnYiOiAiUC0yNTYiLCAia2lkIjogImFnZW50LTEiLCAia3R5IjogIkVDIiwgIngiOiAiTW9MZFI0LXRsbW9lM0ZDTDVWZXhQX2txTjgyVExlaVlOZGp2cEFIbG1kOCIsICJ5IjogInJQcUJUWHZsbHRETEctcXZoZndlRXZfRXAzaGMyWEpJb3poeldmVnJWQlkifX19XQ~~eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImtiK3NkLWp3dCIsICJraWQiOiAiYWdlbnQtMSJ9.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogIk91ZDBJdlJkVmYtYm1mOEFkTUd3LTZyZnpSTDFEM1EwaC1YLTlGUVlWaTgifV0sICJpYXQiOiAxNzgwMDAwMDAwLCAiYXVkIjogIm1lcmNoYW50IiwgIm5vbmNlIjogIm5vbmNlLTEiLCAic2RfaGFzaCI6ICJjTjdKbW16aG92czNnNGRLeVVGRWx3SXFQcXJQdkxwMHduZHdsb25DOVRrIiwgIl9zZF9hbGciOiAic2hhLTI1NiJ9.SOPyWsQGXFh66KXCV1N18Yxz0QQT9Sz9wYs4uos1EUh1KsloN3sxrtFO1CD3o1vb_Lqe7yFHl24rixnp1LI6HA~WyJFZGJxWDNya2U1UGVwVUppVXJqdnBnIiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50LjEiLCAidHJhbnNhY3Rpb25faWQiOiAidHhfMSIsICJwYXllZSI6IHsiaWQiOiAicy0xIiwgIm5hbWUiOiAiU2hvcCJ9LCAicGF5bWVudF9hbW91bnQiOiB7ImFtb3VudCI6IDEwMDAsICJjdXJyZW5jeSI6ICJVU0QifSwgInBheW1lbnRfaW5zdHJ1bWVudCI6IHsiaWQiOiAicGktMSIsICJ0eXBlIjogImNyZWRpdCJ9fV0~",
     "rootKey": {
       "crv": "P-256",
       "kid": "user-1",
       "kty": "EC",
-      "x": "5uE4B9lYESCentRD5baoViIW1R3i-gZkfKn7F19w09g",
-      "y": "Qf7VWlUl4-5WHvt1TqfQh9GThlyNCqOmWT9Wt5Ohcmg"
+      "x": "5RpWnrqH0MB3w25dp_UQBK8ajEZ57soyDv0yMncjPHY",
+      "y": "gdTLnfw1rjZpLySmr5wpfIKq-sOxCrDmKkdvqMCDInI"
     },
     "expectedAud": "merchant",
     "expectedNonce": "nonce-1",
@@ -28,8 +28,150 @@
             "crv": "P-256",
             "kid": "agent-1",
             "kty": "EC",
-            "x": "g0aEu5tS1Go90rq9-rbS66WRMrRyAAa7EKvgjKhi-pU",
-            "y": "IUj9mVa4-0YGFaj6fvKUFNsaQdB0gGdV7aurRs8JXJ0"
+            "x": "MoLdR4-tlmoe3FCL5VexP_kqN82TLeiYNdjvpAHlmd8",
+            "y": "rPqBTXvlltDLG-qvhfweEv_Ep3hc2XJIozhzWfVrVBY"
+          }
+        }
+      },
+      {
+        "vct": "mandate.payment.1",
+        "transaction_id": "tx_1",
+        "payee": {
+          "id": "s-1",
+          "name": "Shop"
+        },
+        "payment_amount": {
+          "amount": 1000,
+          "currency": "USD"
+        },
+        "payment_instrument": {
+          "id": "pi-1",
+          "type": "credit"
+        }
+      }
+    ]
+  },
+  {
+    "name": "valid_payment_3hop",
+    "description": "user root -> agent intermediate (cnf=cp) -> cp terminal.",
+    "chain": "eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImV4YW1wbGUrc2Qtand0IiwgImtpZCI6ICJ1c2VyLTEifQ.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogInpzNzRoX01kZzQyaDJDV201XzZRN3JPTnVITHZxNHd4VEtQNHpnQVo1UjQifV0sICJfc2RfYWxnIjogInNoYS0yNTYifQ.ADeqHwwbxJFg5EsVIMU7TMBxHMB5VtoOROVtSIEGBe0zs7r9A3OdFpLsh1NKZSk_Q-SUqjDR8hq-u8IWgqACEQ~WyJrOW5LNm1vdzhpRXV4eHNpNm5QbzFBIiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50Lm9wZW4uMSIsICJjb25zdHJhaW50cyI6IFt7InR5cGUiOiAicGF5bWVudC5hbW91bnRfcmFuZ2UiLCAiY3VycmVuY3kiOiAiVVNEIiwgIm1heCI6IDUwMDB9XSwgImNuZiI6IHsiandrIjogeyJjcnYiOiAiUC0yNTYiLCAia2lkIjogImFnZW50LTEiLCAia3R5IjogIkVDIiwgIngiOiAiTW9MZFI0LXRsbW9lM0ZDTDVWZXhQX2txTjgyVExlaVlOZGp2cEFIbG1kOCIsICJ5IjogInJQcUJUWHZsbHRETEctcXZoZndlRXZfRXAzaGMyWEpJb3poeldmVnJWQlkifX19XQ~~eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImtiK3NkLWp3dCtrYiIsICJraWQiOiAiYWdlbnQtMSJ9.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogIkRjQmhQRlY4aFBqOEsyaGoyTnZET1lvR2dhWDFhaTUteFNXQ2lBX3paRFUifV0sICJpYXQiOiAxNzgwMDAwMDAwLCAiYXVkIjogImNwLWFnZW50IiwgIm5vbmNlIjogImNwLW5vbmNlIiwgInNkX2hhc2giOiAiY043Sm1temhvdnMzZzRkS3lVRkVsd0lxUHFyUHZMcDB3bmR3bG9uQzlUayIsICJfc2RfYWxnIjogInNoYS0yNTYifQ._Bb4qFeih14LQbZf5LMR2j67hLie2uv4aAhcyrpoPVuLBAG1zPtbbduU3blGvkYTWfI5UdT530kQaozUMLIVPA~WyJ6NC1NMmp4dXJDWEFaSkhSeVBVbHRRIiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50Lm9wZW4uMSIsICJjb25zdHJhaW50cyI6IFt7InR5cGUiOiAicGF5bWVudC5hbW91bnRfcmFuZ2UiLCAiY3VycmVuY3kiOiAiVVNEIiwgIm1heCI6IDUwMDB9XSwgImNuZiI6IHsiandrIjogeyJjcnYiOiAiUC0yNTYiLCAia2lkIjogImNwLTEiLCAia3R5IjogIkVDIiwgIngiOiAiT0xXeElnOUlpM0p4SFo3VkJpQ3pLcDd2b3F6V2d5cEFhVC1wZWEtTWwyRSIsICJ5IjogIm9wbXRFTGFuTWNLUDBYdS16UGRYWTJQOXRTa0d0SkNmMzFGUmVpRDJ5cjgifX19XQ~~eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImtiK3NkLWp3dCIsICJraWQiOiAiY3AtMSJ9.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogImgyUE02Vkt0QmFOOUdBc1FseUdrOV83YmpBMkptVUJvN0F0Yko5Z3owbXMifV0sICJpYXQiOiAxNzgwMDAwMDAwLCAiYXVkIjogIm1lcmNoYW50IiwgIm5vbmNlIjogIm5vbmNlLTEiLCAic2RfaGFzaCI6ICJqTXJ2ZEdXNFlMRDc4VWJ6c3U2ZWo2dDVBeTdyQlNWdWJxc0QxUE5PMldjIiwgIl9zZF9hbGciOiAic2hhLTI1NiJ9.XSOpAzO4gs2fzWMtbJObGxATjBlNsqXMht24MB7r7Ay9w_XfHeGnJI-tSZkRncaHJ1i6F1CgU2rmkP6STLDxDg~WyJrTmxRN21UOThOUFlwVGR2RzM2WnBnIiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50LjEiLCAidHJhbnNhY3Rpb25faWQiOiAidHhfMSIsICJwYXllZSI6IHsiaWQiOiAicy0xIiwgIm5hbWUiOiAiU2hvcCJ9LCAicGF5bWVudF9hbW91bnQiOiB7ImFtb3VudCI6IDEwMDAsICJjdXJyZW5jeSI6ICJVU0QifSwgInBheW1lbnRfaW5zdHJ1bWVudCI6IHsiaWQiOiAicGktMSIsICJ0eXBlIjogImNyZWRpdCJ9fV0~",
+    "rootKey": {
+      "crv": "P-256",
+      "kid": "user-1",
+      "kty": "EC",
+      "x": "5RpWnrqH0MB3w25dp_UQBK8ajEZ57soyDv0yMncjPHY",
+      "y": "gdTLnfw1rjZpLySmr5wpfIKq-sOxCrDmKkdvqMCDInI"
+    },
+    "expectedAud": "merchant",
+    "expectedNonce": "nonce-1",
+    "expect": "valid",
+    "expectedPayloads": [
+      {
+        "vct": "mandate.payment.open.1",
+        "constraints": [
+          {
+            "type": "payment.amount_range",
+            "currency": "USD",
+            "max": 5000
+          }
+        ],
+        "cnf": {
+          "jwk": {
+            "crv": "P-256",
+            "kid": "agent-1",
+            "kty": "EC",
+            "x": "MoLdR4-tlmoe3FCL5VexP_kqN82TLeiYNdjvpAHlmd8",
+            "y": "rPqBTXvlltDLG-qvhfweEv_Ep3hc2XJIozhzWfVrVBY"
+          }
+        }
+      },
+      {
+        "vct": "mandate.payment.open.1",
+        "constraints": [
+          {
+            "type": "payment.amount_range",
+            "currency": "USD",
+            "max": 5000
+          }
+        ],
+        "cnf": {
+          "jwk": {
+            "crv": "P-256",
+            "kid": "cp-1",
+            "kty": "EC",
+            "x": "OLWxIg9Ii3JxHZ7VBiCzKp7voqzWgypAaT-pea-Ml2E",
+            "y": "opmtELanMcKP0Xu-zPdXY2P9tSkGtJCf31FReiD2yr8"
+          }
+        }
+      },
+      {
+        "vct": "mandate.payment.1",
+        "transaction_id": "tx_1",
+        "payee": {
+          "id": "s-1",
+          "name": "Shop"
+        },
+        "payment_amount": {
+          "amount": 1000,
+          "currency": "USD"
+        },
+        "payment_instrument": {
+          "id": "pi-1",
+          "type": "credit"
+        }
+      }
+    ]
+  },
+  {
+    "name": "valid_payment_3hop_issuer_jwt_hash",
+    "description": "3-hop where the intermediate hop binds via issuer_jwt_hash.",
+    "chain": "eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImV4YW1wbGUrc2Qtand0IiwgImtpZCI6ICJ1c2VyLTEifQ.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogInpzNzRoX01kZzQyaDJDV201XzZRN3JPTnVITHZxNHd4VEtQNHpnQVo1UjQifV0sICJfc2RfYWxnIjogInNoYS0yNTYifQ.ADeqHwwbxJFg5EsVIMU7TMBxHMB5VtoOROVtSIEGBe0zs7r9A3OdFpLsh1NKZSk_Q-SUqjDR8hq-u8IWgqACEQ~WyJrOW5LNm1vdzhpRXV4eHNpNm5QbzFBIiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50Lm9wZW4uMSIsICJjb25zdHJhaW50cyI6IFt7InR5cGUiOiAicGF5bWVudC5hbW91bnRfcmFuZ2UiLCAiY3VycmVuY3kiOiAiVVNEIiwgIm1heCI6IDUwMDB9XSwgImNuZiI6IHsiandrIjogeyJjcnYiOiAiUC0yNTYiLCAia2lkIjogImFnZW50LTEiLCAia3R5IjogIkVDIiwgIngiOiAiTW9MZFI0LXRsbW9lM0ZDTDVWZXhQX2txTjgyVExlaVlOZGp2cEFIbG1kOCIsICJ5IjogInJQcUJUWHZsbHRETEctcXZoZndlRXZfRXAzaGMyWEpJb3poeldmVnJWQlkifX19XQ~~eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImtiK3NkLWp3dCtrYiIsICJraWQiOiAiYWdlbnQtMSJ9.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogInpZVVd3emp2Rm5WWTgyemFPb2pTRmROajU4MThpVzMxOThRUkdyZ3hqazAifV0sICJpYXQiOiAxNzgwMDAwMDAwLCAiYXVkIjogImNwLWFnZW50IiwgIm5vbmNlIjogImNwLW5vbmNlIiwgImlzc3Vlcl9qd3RfaGFzaCI6ICJKQ1lwdWEyUzJRMjdKOWhKbUI5MmJHRGo3RXU0UV9PREVUOXVGcjRvanFvIiwgIl9zZF9hbGciOiAic2hhLTI1NiJ9.Km1u6F1xy_Lup3B8NCXlMYfMy7Y_0EFdrify4l47Swv4dJbEjfKkAKy0pGZ-BIePmWmrHzp2nQeoQT0hX7xfKw~WyJnRE1teENLYU05Rk5Yc2dIZ1RIeUtnIiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50Lm9wZW4uMSIsICJjb25zdHJhaW50cyI6IFt7InR5cGUiOiAicGF5bWVudC5hbW91bnRfcmFuZ2UiLCAiY3VycmVuY3kiOiAiVVNEIiwgIm1heCI6IDUwMDB9XSwgImNuZiI6IHsiandrIjogeyJjcnYiOiAiUC0yNTYiLCAia2lkIjogImNwLTEiLCAia3R5IjogIkVDIiwgIngiOiAiT0xXeElnOUlpM0p4SFo3VkJpQ3pLcDd2b3F6V2d5cEFhVC1wZWEtTWwyRSIsICJ5IjogIm9wbXRFTGFuTWNLUDBYdS16UGRYWTJQOXRTa0d0SkNmMzFGUmVpRDJ5cjgifX19XQ~~eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImtiK3NkLWp3dCIsICJraWQiOiAiY3AtMSJ9.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogIlY2cUdSWFhDUlNSLVJ2Mk52YXZWbEoxd2V0YXkwUk5vUWtpVlh1Tkp5MXcifV0sICJpYXQiOiAxNzgwMDAwMDAwLCAiYXVkIjogIm1lcmNoYW50IiwgIm5vbmNlIjogIm5vbmNlLTEiLCAic2RfaGFzaCI6ICJuaHhfUWx5YWhZWm1GNll4MjcwYi1VMXdsTUpOY0xoWWpBZDdGWU5iVEhBIiwgIl9zZF9hbGciOiAic2hhLTI1NiJ9.qUOUeYZgiNcmLrrhLLoTze10YFaV08AwaPhMI6XRmVtxTxlLqThcQ86a7koHHQwXsx0mmLbRJMwk8Llp97WNjQ~WyJ5ZG1KQlV3WEx1SUxJd19mcEVPVkl3IiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50LjEiLCAidHJhbnNhY3Rpb25faWQiOiAidHhfMSIsICJwYXllZSI6IHsiaWQiOiAicy0xIiwgIm5hbWUiOiAiU2hvcCJ9LCAicGF5bWVudF9hbW91bnQiOiB7ImFtb3VudCI6IDEwMDAsICJjdXJyZW5jeSI6ICJVU0QifSwgInBheW1lbnRfaW5zdHJ1bWVudCI6IHsiaWQiOiAicGktMSIsICJ0eXBlIjogImNyZWRpdCJ9fV0~",
+    "rootKey": {
+      "crv": "P-256",
+      "kid": "user-1",
+      "kty": "EC",
+      "x": "5RpWnrqH0MB3w25dp_UQBK8ajEZ57soyDv0yMncjPHY",
+      "y": "gdTLnfw1rjZpLySmr5wpfIKq-sOxCrDmKkdvqMCDInI"
+    },
+    "expectedAud": "merchant",
+    "expectedNonce": "nonce-1",
+    "expect": "valid",
+    "expectedPayloads": [
+      {
+        "vct": "mandate.payment.open.1",
+        "constraints": [
+          {
+            "type": "payment.amount_range",
+            "currency": "USD",
+            "max": 5000
+          }
+        ],
+        "cnf": {
+          "jwk": {
+            "crv": "P-256",
+            "kid": "agent-1",
+            "kty": "EC",
+            "x": "MoLdR4-tlmoe3FCL5VexP_kqN82TLeiYNdjvpAHlmd8",
+            "y": "rPqBTXvlltDLG-qvhfweEv_Ep3hc2XJIozhzWfVrVBY"
+          }
+        }
+      },
+      {
+        "vct": "mandate.payment.open.1",
+        "constraints": [
+          {
+            "type": "payment.amount_range",
+            "currency": "USD",
+            "max": 5000
+          }
+        ],
+        "cnf": {
+          "jwk": {
+            "crv": "P-256",
+            "kid": "cp-1",
+            "kty": "EC",
+            "x": "OLWxIg9Ii3JxHZ7VBiCzKp7voqzWgypAaT-pea-Ml2E",
+            "y": "opmtELanMcKP0Xu-zPdXY2P9tSkGtJCf31FReiD2yr8"
           }
         }
       },
@@ -54,13 +196,13 @@
   {
     "name": "tampered_root_payload",
     "description": "One byte flipped in the root issuer-JWT payload.",
-    "chain": "eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImV4YW1wbGUrc2Qtand0IiwgImtpZCI6ICJ1c2VyLTEifQ.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogImZxY25iQ0lZaDJIZnlCUGwyaGV1aldwU0hFQ1N3TUJmSTJkLWdQSWwwVm8ifV0sICJfc2RfYWxnIjogInNoYS0yNTYifA.c4p6CV39oxZQtgs7Pj6a5hH-tX62TSSBVt-1miyerpvku3H-ldJvEWxj-yWFjuZzwSoqxvl4KwoiCzz9qqybXA~WyJhQ0ktMDdIZVBVZUdpYmVnN3gwbzBBIiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50Lm9wZW4uMSIsICJjb25zdHJhaW50cyI6IFt7InR5cGUiOiAicGF5bWVudC5hbW91bnRfcmFuZ2UiLCAiY3VycmVuY3kiOiAiVVNEIiwgIm1heCI6IDUwMDB9XSwgImNuZiI6IHsiandrIjogeyJjcnYiOiAiUC0yNTYiLCAia2lkIjogImFnZW50LTEiLCAia3R5IjogIkVDIiwgIngiOiAiZzBhRXU1dFMxR285MHJxOS1yYlM2NldSTXJSeUFBYTdFS3ZnaktoaS1wVSIsICJ5IjogIklVajltVmE0LTBZR0ZhajZmdktVRk5zYVFkQjBnR2RWN2F1clJzOEpYSjAifX19XQ~~eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImtiK3NkLWp3dCIsICJraWQiOiAiYWdlbnQtMSJ9.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogIm5jZXA3cC1lbzdJaGdweFhqRV9EV1BjX016U2cyd2Jjcld5R2hfOFdNeVUifV0sICJpYXQiOiAxNzgwNzkzMDIyLCAiYXVkIjogIm1lcmNoYW50IiwgIm5vbmNlIjogIm5vbmNlLTEiLCAic2RfaGFzaCI6ICJIOTJhYlJoQnRTd193OUVwdkpMWG9KbFphYlY5Y2F2NEhtM3R4U2MtQXZFIiwgIl9zZF9hbGciOiAic2hhLTI1NiJ9.4za6VfktxoyFHvF_hoF0OBs6BfqcpVHAAN4P1GaiT3WJwofb5gVlT-wYp3SrCl1Q73Ze6BZb2AxNnoKDsnU34g~WyJMRkE2YllJZzNlSklHOHhUZTVDclJBIiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50LjEiLCAidHJhbnNhY3Rpb25faWQiOiAidHhfMSIsICJwYXllZSI6IHsiaWQiOiAicy0xIiwgIm5hbWUiOiAiU2hvcCJ9LCAicGF5bWVudF9hbW91bnQiOiB7ImFtb3VudCI6IDEwMDAsICJjdXJyZW5jeSI6ICJVU0QifSwgInBheW1lbnRfaW5zdHJ1bWVudCI6IHsiaWQiOiAicGktMSIsICJ0eXBlIjogImNyZWRpdCJ9fV0~",
+    "chain": "eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImV4YW1wbGUrc2Qtand0IiwgImtpZCI6ICJ1c2VyLTEifQ.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogInpzNzRoX01kZzQyaDJDV201XzZRN3JPTnVITHZxNHd4VEtQNHpnQVo1UjQifV0sICJfc2RfYWxnIjogInNoYS0yNTYifA.ADeqHwwbxJFg5EsVIMU7TMBxHMB5VtoOROVtSIEGBe0zs7r9A3OdFpLsh1NKZSk_Q-SUqjDR8hq-u8IWgqACEQ~WyJrOW5LNm1vdzhpRXV4eHNpNm5QbzFBIiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50Lm9wZW4uMSIsICJjb25zdHJhaW50cyI6IFt7InR5cGUiOiAicGF5bWVudC5hbW91bnRfcmFuZ2UiLCAiY3VycmVuY3kiOiAiVVNEIiwgIm1heCI6IDUwMDB9XSwgImNuZiI6IHsiandrIjogeyJjcnYiOiAiUC0yNTYiLCAia2lkIjogImFnZW50LTEiLCAia3R5IjogIkVDIiwgIngiOiAiTW9MZFI0LXRsbW9lM0ZDTDVWZXhQX2txTjgyVExlaVlOZGp2cEFIbG1kOCIsICJ5IjogInJQcUJUWHZsbHRETEctcXZoZndlRXZfRXAzaGMyWEpJb3poeldmVnJWQlkifX19XQ~~eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImtiK3NkLWp3dCIsICJraWQiOiAiYWdlbnQtMSJ9.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogIk91ZDBJdlJkVmYtYm1mOEFkTUd3LTZyZnpSTDFEM1EwaC1YLTlGUVlWaTgifV0sICJpYXQiOiAxNzgwMDAwMDAwLCAiYXVkIjogIm1lcmNoYW50IiwgIm5vbmNlIjogIm5vbmNlLTEiLCAic2RfaGFzaCI6ICJjTjdKbW16aG92czNnNGRLeVVGRWx3SXFQcXJQdkxwMHduZHdsb25DOVRrIiwgIl9zZF9hbGciOiAic2hhLTI1NiJ9.SOPyWsQGXFh66KXCV1N18Yxz0QQT9Sz9wYs4uos1EUh1KsloN3sxrtFO1CD3o1vb_Lqe7yFHl24rixnp1LI6HA~WyJFZGJxWDNya2U1UGVwVUppVXJqdnBnIiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50LjEiLCAidHJhbnNhY3Rpb25faWQiOiAidHhfMSIsICJwYXllZSI6IHsiaWQiOiAicy0xIiwgIm5hbWUiOiAiU2hvcCJ9LCAicGF5bWVudF9hbW91bnQiOiB7ImFtb3VudCI6IDEwMDAsICJjdXJyZW5jeSI6ICJVU0QifSwgInBheW1lbnRfaW5zdHJ1bWVudCI6IHsiaWQiOiAicGktMSIsICJ0eXBlIjogImNyZWRpdCJ9fV0~",
     "rootKey": {
       "crv": "P-256",
       "kid": "user-1",
       "kty": "EC",
-      "x": "5uE4B9lYESCentRD5baoViIW1R3i-gZkfKn7F19w09g",
-      "y": "Qf7VWlUl4-5WHvt1TqfQh9GThlyNCqOmWT9Wt5Ohcmg"
+      "x": "5RpWnrqH0MB3w25dp_UQBK8ajEZ57soyDv0yMncjPHY",
+      "y": "gdTLnfw1rjZpLySmr5wpfIKq-sOxCrDmKkdvqMCDInI"
     },
     "expectedAud": "merchant",
     "expectedNonce": "nonce-1",
@@ -70,13 +212,13 @@
   {
     "name": "wrong_cnf_key",
     "description": "Terminal hop signed by a key not named in the prior cnf.jwk.",
-    "chain": "eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImV4YW1wbGUrc2Qtand0IiwgImtpZCI6ICJ1c2VyLTEifQ.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogImZxY25iQ0lZaDJIZnlCUGwyaGV1aldwU0hFQ1N3TUJmSTJkLWdQSWwwVm8ifV0sICJfc2RfYWxnIjogInNoYS0yNTYifQ.c4p6CV39oxZQtgs7Pj6a5hH-tX62TSSBVt-1miyerpvku3H-ldJvEWxj-yWFjuZzwSoqxvl4KwoiCzz9qqybXA~WyJhQ0ktMDdIZVBVZUdpYmVnN3gwbzBBIiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50Lm9wZW4uMSIsICJjb25zdHJhaW50cyI6IFt7InR5cGUiOiAicGF5bWVudC5hbW91bnRfcmFuZ2UiLCAiY3VycmVuY3kiOiAiVVNEIiwgIm1heCI6IDUwMDB9XSwgImNuZiI6IHsiandrIjogeyJjcnYiOiAiUC0yNTYiLCAia2lkIjogImFnZW50LTEiLCAia3R5IjogIkVDIiwgIngiOiAiZzBhRXU1dFMxR285MHJxOS1yYlM2NldSTXJSeUFBYTdFS3ZnaktoaS1wVSIsICJ5IjogIklVajltVmE0LTBZR0ZhajZmdktVRk5zYVFkQjBnR2RWN2F1clJzOEpYSjAifX19XQ~~eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImtiK3NkLWp3dCIsICJraWQiOiAib3RoZXItMSJ9.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogIkNxNVR2MVlVVkUtenE2aFJPNGVjY3o5ZTByX29VWXVjaVFqNjdMMTJobmsifV0sICJpYXQiOiAxNzgwNzkzMDIyLCAiYXVkIjogIm1lcmNoYW50IiwgIm5vbmNlIjogIm5vbmNlLTEiLCAic2RfaGFzaCI6ICJIOTJhYlJoQnRTd193OUVwdkpMWG9KbFphYlY5Y2F2NEhtM3R4U2MtQXZFIiwgIl9zZF9hbGciOiAic2hhLTI1NiJ9.f5DHvTjZ51dr52ja-ONnWO8EUEBznPV8JCR0sKfCJ9e9olsf69NeCabLBs84MAyefoVedX5twLVeOhOgl7mkqA~WyJYSVF0c3p5ODlDSW1DdGRJRXRiaUN3IiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50LjEiLCAidHJhbnNhY3Rpb25faWQiOiAidHhfMSIsICJwYXllZSI6IHsiaWQiOiAicy0xIiwgIm5hbWUiOiAiU2hvcCJ9LCAicGF5bWVudF9hbW91bnQiOiB7ImFtb3VudCI6IDEwMDAsICJjdXJyZW5jeSI6ICJVU0QifSwgInBheW1lbnRfaW5zdHJ1bWVudCI6IHsiaWQiOiAicGktMSIsICJ0eXBlIjogImNyZWRpdCJ9fV0~",
+    "chain": "eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImV4YW1wbGUrc2Qtand0IiwgImtpZCI6ICJ1c2VyLTEifQ.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogInpzNzRoX01kZzQyaDJDV201XzZRN3JPTnVITHZxNHd4VEtQNHpnQVo1UjQifV0sICJfc2RfYWxnIjogInNoYS0yNTYifQ.ADeqHwwbxJFg5EsVIMU7TMBxHMB5VtoOROVtSIEGBe0zs7r9A3OdFpLsh1NKZSk_Q-SUqjDR8hq-u8IWgqACEQ~WyJrOW5LNm1vdzhpRXV4eHNpNm5QbzFBIiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50Lm9wZW4uMSIsICJjb25zdHJhaW50cyI6IFt7InR5cGUiOiAicGF5bWVudC5hbW91bnRfcmFuZ2UiLCAiY3VycmVuY3kiOiAiVVNEIiwgIm1heCI6IDUwMDB9XSwgImNuZiI6IHsiandrIjogeyJjcnYiOiAiUC0yNTYiLCAia2lkIjogImFnZW50LTEiLCAia3R5IjogIkVDIiwgIngiOiAiTW9MZFI0LXRsbW9lM0ZDTDVWZXhQX2txTjgyVExlaVlOZGp2cEFIbG1kOCIsICJ5IjogInJQcUJUWHZsbHRETEctcXZoZndlRXZfRXAzaGMyWEpJb3poeldmVnJWQlkifX19XQ~~eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImtiK3NkLWp3dCIsICJraWQiOiAib3RoZXItMSJ9.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogIkFjOG9wTXZvMkRlZlJpZ0FVenFVVDFhcGxlRmRONlFnTW1XV2t6QU5uVmMifV0sICJpYXQiOiAxNzgwMDAwMDAwLCAiYXVkIjogIm1lcmNoYW50IiwgIm5vbmNlIjogIm5vbmNlLTEiLCAic2RfaGFzaCI6ICJjTjdKbW16aG92czNnNGRLeVVGRWx3SXFQcXJQdkxwMHduZHdsb25DOVRrIiwgIl9zZF9hbGciOiAic2hhLTI1NiJ9.fO0J4xMXR7rw1CIh4tMORv23qaRIVpcc7j8cZrkW00_DiEyLyzfu4yr5HRJ4RSwXxLEHDNTXnRr6GS9wRNZNMA~WyJlUXZfNm80N1l1eEpWOUV2RlA2WmNRIiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50LjEiLCAidHJhbnNhY3Rpb25faWQiOiAidHhfMSIsICJwYXllZSI6IHsiaWQiOiAicy0xIiwgIm5hbWUiOiAiU2hvcCJ9LCAicGF5bWVudF9hbW91bnQiOiB7ImFtb3VudCI6IDEwMDAsICJjdXJyZW5jeSI6ICJVU0QifSwgInBheW1lbnRfaW5zdHJ1bWVudCI6IHsiaWQiOiAicGktMSIsICJ0eXBlIjogImNyZWRpdCJ9fV0~",
     "rootKey": {
       "crv": "P-256",
       "kid": "user-1",
       "kty": "EC",
-      "x": "5uE4B9lYESCentRD5baoViIW1R3i-gZkfKn7F19w09g",
-      "y": "Qf7VWlUl4-5WHvt1TqfQh9GThlyNCqOmWT9Wt5Ohcmg"
+      "x": "5RpWnrqH0MB3w25dp_UQBK8ajEZ57soyDv0yMncjPHY",
+      "y": "gdTLnfw1rjZpLySmr5wpfIKq-sOxCrDmKkdvqMCDInI"
     },
     "expectedAud": "merchant",
     "expectedNonce": "nonce-1",
@@ -84,15 +226,31 @@
     "reason": "hop signature does not verify under prev cnf.jwk"
   },
   {
-    "name": "aud_mismatch",
-    "description": "Valid chain, verifier expects a different audience.",
-    "chain": "eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImV4YW1wbGUrc2Qtand0IiwgImtpZCI6ICJ1c2VyLTEifQ.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogImZxY25iQ0lZaDJIZnlCUGwyaGV1aldwU0hFQ1N3TUJmSTJkLWdQSWwwVm8ifV0sICJfc2RfYWxnIjogInNoYS0yNTYifQ.c4p6CV39oxZQtgs7Pj6a5hH-tX62TSSBVt-1miyerpvku3H-ldJvEWxj-yWFjuZzwSoqxvl4KwoiCzz9qqybXA~WyJhQ0ktMDdIZVBVZUdpYmVnN3gwbzBBIiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50Lm9wZW4uMSIsICJjb25zdHJhaW50cyI6IFt7InR5cGUiOiAicGF5bWVudC5hbW91bnRfcmFuZ2UiLCAiY3VycmVuY3kiOiAiVVNEIiwgIm1heCI6IDUwMDB9XSwgImNuZiI6IHsiandrIjogeyJjcnYiOiAiUC0yNTYiLCAia2lkIjogImFnZW50LTEiLCAia3R5IjogIkVDIiwgIngiOiAiZzBhRXU1dFMxR285MHJxOS1yYlM2NldSTXJSeUFBYTdFS3ZnaktoaS1wVSIsICJ5IjogIklVajltVmE0LTBZR0ZhajZmdktVRk5zYVFkQjBnR2RWN2F1clJzOEpYSjAifX19XQ~~eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImtiK3NkLWp3dCIsICJraWQiOiAiYWdlbnQtMSJ9.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogIm5jZXA3cC1lbzdJaGdweFhqRV9EV1BjX016U2cyd2Jjcld5R2hfOFdNeVUifV0sICJpYXQiOiAxNzgwNzkzMDIyLCAiYXVkIjogIm1lcmNoYW50IiwgIm5vbmNlIjogIm5vbmNlLTEiLCAic2RfaGFzaCI6ICJIOTJhYlJoQnRTd193OUVwdkpMWG9KbFphYlY5Y2F2NEhtM3R4U2MtQXZFIiwgIl9zZF9hbGciOiAic2hhLTI1NiJ9.4za6VfktxoyFHvF_hoF0OBs6BfqcpVHAAN4P1GaiT3WJwofb5gVlT-wYp3SrCl1Q73Ze6BZb2AxNnoKDsnU34g~WyJMRkE2YllJZzNlSklHOHhUZTVDclJBIiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50LjEiLCAidHJhbnNhY3Rpb25faWQiOiAidHhfMSIsICJwYXllZSI6IHsiaWQiOiAicy0xIiwgIm5hbWUiOiAiU2hvcCJ9LCAicGF5bWVudF9hbW91bnQiOiB7ImFtb3VudCI6IDEwMDAsICJjdXJyZW5jeSI6ICJVU0QifSwgInBheW1lbnRfaW5zdHJ1bWVudCI6IHsiaWQiOiAicGktMSIsICJ0eXBlIjogImNyZWRpdCJ9fV0~",
+    "name": "binding_sd_hash_mismatch",
+    "description": "Terminal hop's sd_hash binds a different root than the one presented.",
+    "chain": "eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImV4YW1wbGUrc2Qtand0IiwgImtpZCI6ICJ1c2VyLTEifQ.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogInpzNzRoX01kZzQyaDJDV201XzZRN3JPTnVITHZxNHd4VEtQNHpnQVo1UjQifV0sICJfc2RfYWxnIjogInNoYS0yNTYifQ.ADeqHwwbxJFg5EsVIMU7TMBxHMB5VtoOROVtSIEGBe0zs7r9A3OdFpLsh1NKZSk_Q-SUqjDR8hq-u8IWgqACEQ~WyJrOW5LNm1vdzhpRXV4eHNpNm5QbzFBIiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50Lm9wZW4uMSIsICJjb25zdHJhaW50cyI6IFt7InR5cGUiOiAicGF5bWVudC5hbW91bnRfcmFuZ2UiLCAiY3VycmVuY3kiOiAiVVNEIiwgIm1heCI6IDUwMDB9XSwgImNuZiI6IHsiandrIjogeyJjcnYiOiAiUC0yNTYiLCAia2lkIjogImFnZW50LTEiLCAia3R5IjogIkVDIiwgIngiOiAiTW9MZFI0LXRsbW9lM0ZDTDVWZXhQX2txTjgyVExlaVlOZGp2cEFIbG1kOCIsICJ5IjogInJQcUJUWHZsbHRETEctcXZoZndlRXZfRXAzaGMyWEpJb3poeldmVnJWQlkifX19XQ~~eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImtiK3NkLWp3dCIsICJraWQiOiAiYWdlbnQtMSJ9.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogIjVsUG5OcE9WU3BRaGFzdjFfcXNCU3dLaHpyUlUzX0JKYXNJcW1oaEJ2TUUifV0sICJpYXQiOiAxNzgwMDAwMDAwLCAiYXVkIjogIm1lcmNoYW50IiwgIm5vbmNlIjogIm5vbmNlLTEiLCAic2RfaGFzaCI6ICJkQVp0MGJsVXcwMnRUUkRQMGU2ZWlLTEpkdUYxMXRuQnlKNFkzYnRrWlNrIiwgIl9zZF9hbGciOiAic2hhLTI1NiJ9.QAL88KFyHIPky05LIzbcYfO7R9suCl5zMrnxr3jQjPTpAMp63h_HOKASiy3vBfWAKEtG9Ox8rrLMIe765XcoRw~WyJya3E5UlZiRms0OHYyb3pxc1FQLUR3IiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50LjEiLCAidHJhbnNhY3Rpb25faWQiOiAidHhfMSIsICJwYXllZSI6IHsiaWQiOiAicy0xIiwgIm5hbWUiOiAiU2hvcCJ9LCAicGF5bWVudF9hbW91bnQiOiB7ImFtb3VudCI6IDEwMDAsICJjdXJyZW5jeSI6ICJVU0QifSwgInBheW1lbnRfaW5zdHJ1bWVudCI6IHsiaWQiOiAicGktMSIsICJ0eXBlIjogImNyZWRpdCJ9fV0~",
     "rootKey": {
       "crv": "P-256",
       "kid": "user-1",
       "kty": "EC",
-      "x": "5uE4B9lYESCentRD5baoViIW1R3i-gZkfKn7F19w09g",
-      "y": "Qf7VWlUl4-5WHvt1TqfQh9GThlyNCqOmWT9Wt5Ohcmg"
+      "x": "5RpWnrqH0MB3w25dp_UQBK8ajEZ57soyDv0yMncjPHY",
+      "y": "gdTLnfw1rjZpLySmr5wpfIKq-sOxCrDmKkdvqMCDInI"
+    },
+    "expectedAud": "merchant",
+    "expectedNonce": "nonce-1",
+    "expect": "reject",
+    "reason": "sd_hash mismatch"
+  },
+  {
+    "name": "aud_mismatch",
+    "description": "Valid chain, verifier expects a different audience.",
+    "chain": "eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImV4YW1wbGUrc2Qtand0IiwgImtpZCI6ICJ1c2VyLTEifQ.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogInpzNzRoX01kZzQyaDJDV201XzZRN3JPTnVITHZxNHd4VEtQNHpnQVo1UjQifV0sICJfc2RfYWxnIjogInNoYS0yNTYifQ.ADeqHwwbxJFg5EsVIMU7TMBxHMB5VtoOROVtSIEGBe0zs7r9A3OdFpLsh1NKZSk_Q-SUqjDR8hq-u8IWgqACEQ~WyJrOW5LNm1vdzhpRXV4eHNpNm5QbzFBIiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50Lm9wZW4uMSIsICJjb25zdHJhaW50cyI6IFt7InR5cGUiOiAicGF5bWVudC5hbW91bnRfcmFuZ2UiLCAiY3VycmVuY3kiOiAiVVNEIiwgIm1heCI6IDUwMDB9XSwgImNuZiI6IHsiandrIjogeyJjcnYiOiAiUC0yNTYiLCAia2lkIjogImFnZW50LTEiLCAia3R5IjogIkVDIiwgIngiOiAiTW9MZFI0LXRsbW9lM0ZDTDVWZXhQX2txTjgyVExlaVlOZGp2cEFIbG1kOCIsICJ5IjogInJQcUJUWHZsbHRETEctcXZoZndlRXZfRXAzaGMyWEpJb3poeldmVnJWQlkifX19XQ~~eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImtiK3NkLWp3dCIsICJraWQiOiAiYWdlbnQtMSJ9.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogIk91ZDBJdlJkVmYtYm1mOEFkTUd3LTZyZnpSTDFEM1EwaC1YLTlGUVlWaTgifV0sICJpYXQiOiAxNzgwMDAwMDAwLCAiYXVkIjogIm1lcmNoYW50IiwgIm5vbmNlIjogIm5vbmNlLTEiLCAic2RfaGFzaCI6ICJjTjdKbW16aG92czNnNGRLeVVGRWx3SXFQcXJQdkxwMHduZHdsb25DOVRrIiwgIl9zZF9hbGciOiAic2hhLTI1NiJ9.SOPyWsQGXFh66KXCV1N18Yxz0QQT9Sz9wYs4uos1EUh1KsloN3sxrtFO1CD3o1vb_Lqe7yFHl24rixnp1LI6HA~WyJFZGJxWDNya2U1UGVwVUppVXJqdnBnIiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50LjEiLCAidHJhbnNhY3Rpb25faWQiOiAidHhfMSIsICJwYXllZSI6IHsiaWQiOiAicy0xIiwgIm5hbWUiOiAiU2hvcCJ9LCAicGF5bWVudF9hbW91bnQiOiB7ImFtb3VudCI6IDEwMDAsICJjdXJyZW5jeSI6ICJVU0QifSwgInBheW1lbnRfaW5zdHJ1bWVudCI6IHsiaWQiOiAicGktMSIsICJ0eXBlIjogImNyZWRpdCJ9fV0~",
+    "rootKey": {
+      "crv": "P-256",
+      "kid": "user-1",
+      "kty": "EC",
+      "x": "5RpWnrqH0MB3w25dp_UQBK8ajEZ57soyDv0yMncjPHY",
+      "y": "gdTLnfw1rjZpLySmr5wpfIKq-sOxCrDmKkdvqMCDInI"
     },
     "expectedAud": "WRONG-aud",
     "expectedNonce": "nonce-1",
@@ -102,13 +260,13 @@
   {
     "name": "nonce_mismatch",
     "description": "Valid chain, verifier expects a different nonce.",
-    "chain": "eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImV4YW1wbGUrc2Qtand0IiwgImtpZCI6ICJ1c2VyLTEifQ.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogImZxY25iQ0lZaDJIZnlCUGwyaGV1aldwU0hFQ1N3TUJmSTJkLWdQSWwwVm8ifV0sICJfc2RfYWxnIjogInNoYS0yNTYifQ.c4p6CV39oxZQtgs7Pj6a5hH-tX62TSSBVt-1miyerpvku3H-ldJvEWxj-yWFjuZzwSoqxvl4KwoiCzz9qqybXA~WyJhQ0ktMDdIZVBVZUdpYmVnN3gwbzBBIiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50Lm9wZW4uMSIsICJjb25zdHJhaW50cyI6IFt7InR5cGUiOiAicGF5bWVudC5hbW91bnRfcmFuZ2UiLCAiY3VycmVuY3kiOiAiVVNEIiwgIm1heCI6IDUwMDB9XSwgImNuZiI6IHsiandrIjogeyJjcnYiOiAiUC0yNTYiLCAia2lkIjogImFnZW50LTEiLCAia3R5IjogIkVDIiwgIngiOiAiZzBhRXU1dFMxR285MHJxOS1yYlM2NldSTXJSeUFBYTdFS3ZnaktoaS1wVSIsICJ5IjogIklVajltVmE0LTBZR0ZhajZmdktVRk5zYVFkQjBnR2RWN2F1clJzOEpYSjAifX19XQ~~eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImtiK3NkLWp3dCIsICJraWQiOiAiYWdlbnQtMSJ9.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogIm5jZXA3cC1lbzdJaGdweFhqRV9EV1BjX016U2cyd2Jjcld5R2hfOFdNeVUifV0sICJpYXQiOiAxNzgwNzkzMDIyLCAiYXVkIjogIm1lcmNoYW50IiwgIm5vbmNlIjogIm5vbmNlLTEiLCAic2RfaGFzaCI6ICJIOTJhYlJoQnRTd193OUVwdkpMWG9KbFphYlY5Y2F2NEhtM3R4U2MtQXZFIiwgIl9zZF9hbGciOiAic2hhLTI1NiJ9.4za6VfktxoyFHvF_hoF0OBs6BfqcpVHAAN4P1GaiT3WJwofb5gVlT-wYp3SrCl1Q73Ze6BZb2AxNnoKDsnU34g~WyJMRkE2YllJZzNlSklHOHhUZTVDclJBIiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50LjEiLCAidHJhbnNhY3Rpb25faWQiOiAidHhfMSIsICJwYXllZSI6IHsiaWQiOiAicy0xIiwgIm5hbWUiOiAiU2hvcCJ9LCAicGF5bWVudF9hbW91bnQiOiB7ImFtb3VudCI6IDEwMDAsICJjdXJyZW5jeSI6ICJVU0QifSwgInBheW1lbnRfaW5zdHJ1bWVudCI6IHsiaWQiOiAicGktMSIsICJ0eXBlIjogImNyZWRpdCJ9fV0~",
+    "chain": "eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImV4YW1wbGUrc2Qtand0IiwgImtpZCI6ICJ1c2VyLTEifQ.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogInpzNzRoX01kZzQyaDJDV201XzZRN3JPTnVITHZxNHd4VEtQNHpnQVo1UjQifV0sICJfc2RfYWxnIjogInNoYS0yNTYifQ.ADeqHwwbxJFg5EsVIMU7TMBxHMB5VtoOROVtSIEGBe0zs7r9A3OdFpLsh1NKZSk_Q-SUqjDR8hq-u8IWgqACEQ~WyJrOW5LNm1vdzhpRXV4eHNpNm5QbzFBIiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50Lm9wZW4uMSIsICJjb25zdHJhaW50cyI6IFt7InR5cGUiOiAicGF5bWVudC5hbW91bnRfcmFuZ2UiLCAiY3VycmVuY3kiOiAiVVNEIiwgIm1heCI6IDUwMDB9XSwgImNuZiI6IHsiandrIjogeyJjcnYiOiAiUC0yNTYiLCAia2lkIjogImFnZW50LTEiLCAia3R5IjogIkVDIiwgIngiOiAiTW9MZFI0LXRsbW9lM0ZDTDVWZXhQX2txTjgyVExlaVlOZGp2cEFIbG1kOCIsICJ5IjogInJQcUJUWHZsbHRETEctcXZoZndlRXZfRXAzaGMyWEpJb3poeldmVnJWQlkifX19XQ~~eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImtiK3NkLWp3dCIsICJraWQiOiAiYWdlbnQtMSJ9.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogIk91ZDBJdlJkVmYtYm1mOEFkTUd3LTZyZnpSTDFEM1EwaC1YLTlGUVlWaTgifV0sICJpYXQiOiAxNzgwMDAwMDAwLCAiYXVkIjogIm1lcmNoYW50IiwgIm5vbmNlIjogIm5vbmNlLTEiLCAic2RfaGFzaCI6ICJjTjdKbW16aG92czNnNGRLeVVGRWx3SXFQcXJQdkxwMHduZHdsb25DOVRrIiwgIl9zZF9hbGciOiAic2hhLTI1NiJ9.SOPyWsQGXFh66KXCV1N18Yxz0QQT9Sz9wYs4uos1EUh1KsloN3sxrtFO1CD3o1vb_Lqe7yFHl24rixnp1LI6HA~WyJFZGJxWDNya2U1UGVwVUppVXJqdnBnIiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50LjEiLCAidHJhbnNhY3Rpb25faWQiOiAidHhfMSIsICJwYXllZSI6IHsiaWQiOiAicy0xIiwgIm5hbWUiOiAiU2hvcCJ9LCAicGF5bWVudF9hbW91bnQiOiB7ImFtb3VudCI6IDEwMDAsICJjdXJyZW5jeSI6ICJVU0QifSwgInBheW1lbnRfaW5zdHJ1bWVudCI6IHsiaWQiOiAicGktMSIsICJ0eXBlIjogImNyZWRpdCJ9fV0~",
     "rootKey": {
       "crv": "P-256",
       "kid": "user-1",
       "kty": "EC",
-      "x": "5uE4B9lYESCentRD5baoViIW1R3i-gZkfKn7F19w09g",
-      "y": "Qf7VWlUl4-5WHvt1TqfQh9GThlyNCqOmWT9Wt5Ohcmg"
+      "x": "5RpWnrqH0MB3w25dp_UQBK8ajEZ57soyDv0yMncjPHY",
+      "y": "gdTLnfw1rjZpLySmr5wpfIKq-sOxCrDmKkdvqMCDInI"
     },
     "expectedAud": "merchant",
     "expectedNonce": "WRONG-nonce",
@@ -118,13 +276,13 @@
   {
     "name": "wrong_root_key",
     "description": "Valid chain verified against an unrelated root key.",
-    "chain": "eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImV4YW1wbGUrc2Qtand0IiwgImtpZCI6ICJ1c2VyLTEifQ.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogImZxY25iQ0lZaDJIZnlCUGwyaGV1aldwU0hFQ1N3TUJmSTJkLWdQSWwwVm8ifV0sICJfc2RfYWxnIjogInNoYS0yNTYifQ.c4p6CV39oxZQtgs7Pj6a5hH-tX62TSSBVt-1miyerpvku3H-ldJvEWxj-yWFjuZzwSoqxvl4KwoiCzz9qqybXA~WyJhQ0ktMDdIZVBVZUdpYmVnN3gwbzBBIiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50Lm9wZW4uMSIsICJjb25zdHJhaW50cyI6IFt7InR5cGUiOiAicGF5bWVudC5hbW91bnRfcmFuZ2UiLCAiY3VycmVuY3kiOiAiVVNEIiwgIm1heCI6IDUwMDB9XSwgImNuZiI6IHsiandrIjogeyJjcnYiOiAiUC0yNTYiLCAia2lkIjogImFnZW50LTEiLCAia3R5IjogIkVDIiwgIngiOiAiZzBhRXU1dFMxR285MHJxOS1yYlM2NldSTXJSeUFBYTdFS3ZnaktoaS1wVSIsICJ5IjogIklVajltVmE0LTBZR0ZhajZmdktVRk5zYVFkQjBnR2RWN2F1clJzOEpYSjAifX19XQ~~eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImtiK3NkLWp3dCIsICJraWQiOiAiYWdlbnQtMSJ9.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogIm5jZXA3cC1lbzdJaGdweFhqRV9EV1BjX016U2cyd2Jjcld5R2hfOFdNeVUifV0sICJpYXQiOiAxNzgwNzkzMDIyLCAiYXVkIjogIm1lcmNoYW50IiwgIm5vbmNlIjogIm5vbmNlLTEiLCAic2RfaGFzaCI6ICJIOTJhYlJoQnRTd193OUVwdkpMWG9KbFphYlY5Y2F2NEhtM3R4U2MtQXZFIiwgIl9zZF9hbGciOiAic2hhLTI1NiJ9.4za6VfktxoyFHvF_hoF0OBs6BfqcpVHAAN4P1GaiT3WJwofb5gVlT-wYp3SrCl1Q73Ze6BZb2AxNnoKDsnU34g~WyJMRkE2YllJZzNlSklHOHhUZTVDclJBIiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50LjEiLCAidHJhbnNhY3Rpb25faWQiOiAidHhfMSIsICJwYXllZSI6IHsiaWQiOiAicy0xIiwgIm5hbWUiOiAiU2hvcCJ9LCAicGF5bWVudF9hbW91bnQiOiB7ImFtb3VudCI6IDEwMDAsICJjdXJyZW5jeSI6ICJVU0QifSwgInBheW1lbnRfaW5zdHJ1bWVudCI6IHsiaWQiOiAicGktMSIsICJ0eXBlIjogImNyZWRpdCJ9fV0~",
+    "chain": "eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImV4YW1wbGUrc2Qtand0IiwgImtpZCI6ICJ1c2VyLTEifQ.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogInpzNzRoX01kZzQyaDJDV201XzZRN3JPTnVITHZxNHd4VEtQNHpnQVo1UjQifV0sICJfc2RfYWxnIjogInNoYS0yNTYifQ.ADeqHwwbxJFg5EsVIMU7TMBxHMB5VtoOROVtSIEGBe0zs7r9A3OdFpLsh1NKZSk_Q-SUqjDR8hq-u8IWgqACEQ~WyJrOW5LNm1vdzhpRXV4eHNpNm5QbzFBIiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50Lm9wZW4uMSIsICJjb25zdHJhaW50cyI6IFt7InR5cGUiOiAicGF5bWVudC5hbW91bnRfcmFuZ2UiLCAiY3VycmVuY3kiOiAiVVNEIiwgIm1heCI6IDUwMDB9XSwgImNuZiI6IHsiandrIjogeyJjcnYiOiAiUC0yNTYiLCAia2lkIjogImFnZW50LTEiLCAia3R5IjogIkVDIiwgIngiOiAiTW9MZFI0LXRsbW9lM0ZDTDVWZXhQX2txTjgyVExlaVlOZGp2cEFIbG1kOCIsICJ5IjogInJQcUJUWHZsbHRETEctcXZoZndlRXZfRXAzaGMyWEpJb3poeldmVnJWQlkifX19XQ~~eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImtiK3NkLWp3dCIsICJraWQiOiAiYWdlbnQtMSJ9.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogIk91ZDBJdlJkVmYtYm1mOEFkTUd3LTZyZnpSTDFEM1EwaC1YLTlGUVlWaTgifV0sICJpYXQiOiAxNzgwMDAwMDAwLCAiYXVkIjogIm1lcmNoYW50IiwgIm5vbmNlIjogIm5vbmNlLTEiLCAic2RfaGFzaCI6ICJjTjdKbW16aG92czNnNGRLeVVGRWx3SXFQcXJQdkxwMHduZHdsb25DOVRrIiwgIl9zZF9hbGciOiAic2hhLTI1NiJ9.SOPyWsQGXFh66KXCV1N18Yxz0QQT9Sz9wYs4uos1EUh1KsloN3sxrtFO1CD3o1vb_Lqe7yFHl24rixnp1LI6HA~WyJFZGJxWDNya2U1UGVwVUppVXJqdnBnIiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50LjEiLCAidHJhbnNhY3Rpb25faWQiOiAidHhfMSIsICJwYXllZSI6IHsiaWQiOiAicy0xIiwgIm5hbWUiOiAiU2hvcCJ9LCAicGF5bWVudF9hbW91bnQiOiB7ImFtb3VudCI6IDEwMDAsICJjdXJyZW5jeSI6ICJVU0QifSwgInBheW1lbnRfaW5zdHJ1bWVudCI6IHsiaWQiOiAicGktMSIsICJ0eXBlIjogImNyZWRpdCJ9fV0~",
     "rootKey": {
       "crv": "P-256",
       "kid": "other-1",
       "kty": "EC",
-      "x": "wCvH-2b044vXLN6wZHG-nxUa-S6S1eA87Vb7c0SRQXQ",
-      "y": "tUamXBDGKIY-4nRp-e_FkXUV3ntXx0v5u8_VJPqP3Ns"
+      "x": "nx_kIxV3KvwAyM7oonFNgIvQcCh5BpT9ACAtj9LC9go",
+      "y": "o5DNP-16Pz8bsBm6vkpLYBEHzHzZzRULGawEjjYYo58"
     },
     "expectedAud": "merchant",
     "expectedNonce": "nonce-1",
