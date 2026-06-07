@@ -41,9 +41,11 @@ from types import SimpleNamespace
 
 from cryptography.hazmat.primitives.asymmetric import ec
 from jwcrypto.jwk import JWK
+from jwcrypto.jws import JWS
 
 from ap2.sdk.mandate import MandateClient, _canonical_chain_segment
 from ap2.sdk.sdjwt import common, kb_sd_jwt, sd_jwt
+from ap2.sdk.utils import b64url_decode, b64url_encode
 from ap2.sdk.generated.open_payment_mandate import OpenPaymentMandate, AmountRange
 from ap2.sdk.generated.payment_mandate import PaymentMandate
 from ap2.sdk.generated.types.amount import Amount
@@ -121,6 +123,36 @@ def join(*segments: str) -> str:
         last = i == len(segments) - 1
         parts.append(s if last else (s[:-1] if s.endswith("~") else s))
     return "~~".join(parts)
+
+
+def sign_compact(header: dict, payload: dict, key: JWK) -> str:
+    """Sign a compact JWS with the given protected header + payload (ES256)."""
+    jws = JWS(json.dumps(payload, separators=(",", ":")).encode())
+    jws.add_signature(key, alg=header["alg"], protected=json.dumps(header, separators=(",", ":")))
+    return jws.serialize(compact=True)
+
+
+def craft(segment: str, signing_key: JWK | None = None, *, header_mut=None, payload_mut=None, resign: bool = True) -> str:
+    """Surgically mutate one chain segment to build a HAND-BUILT NEGATIVE vector.
+
+    `resign=True` re-signs the issuer JWT with `signing_key` after mutating the
+    header/payload, so the signature stays valid and only the targeted rule is
+    violated (isolates typ / binding / cnf / exp checks). `resign=False` keeps
+    the original payload + signature and only re-encodes the header (used for
+    alg-swaps, which a pinned verifier must reject BEFORE signature math)."""
+    tilde = segment.split("~")
+    h_b64, p_b64, s_b64 = tilde[0].split(".")
+    header = json.loads(b64url_decode(h_b64))
+    payload = json.loads(b64url_decode(p_b64))
+    if header_mut:
+        header_mut(header)
+    if payload_mut:
+        payload_mut(payload)
+    if resign:
+        new_ij = sign_compact(header, payload, signing_key)
+    else:
+        new_ij = ".".join([b64url_encode(json.dumps(header, separators=(",", ":")).encode()), p_b64, s_b64])
+    return "~".join([new_ij] + tilde[1:])
 
 
 def emit_hash_pairs(chain: str) -> dict:
@@ -238,6 +270,56 @@ def main() -> None:
     assert_ap2_rejects("wrong_root_key", chain2, other)
     add("wrong_root_key", "Valid chain verified against an unrelated root key.",
         chain2, pub(other), "reject", reason="root signature does not verify under given key")
+
+    # ── Hand-built negative vectors (PLAN §7). Each is CONFIRMED rejected by
+    #    AP2's own verifier at mint time, so it is a true negative per AP2. ──
+    root2_pt = common.parse_token(root2)
+    ijh = common.compute_issuer_jwt_hash(root2_pt)
+
+    # wrong typ on the terminal hop (re-signed so the signature stays valid)
+    v = join(root2, craft(leaf2, agent, header_mut=lambda hdr: hdr.__setitem__("typ", "application/bogus+jwt")))
+    assert_ap2_rejects("wrong_typ", v, user)
+    add("wrong_typ", "Terminal hop carries an unrecognized 'typ'.", v, pub(user), "reject", reason="unexpected typ")
+
+    # BOTH binding claims present
+    v = join(root2, craft(leaf2, agent, payload_mut=lambda p: p.__setitem__("issuer_jwt_hash", ijh)))
+    assert_ap2_rejects("both_binding_claims", v, user)
+    add("both_binding_claims", "Terminal hop has BOTH sd_hash and issuer_jwt_hash.",
+        v, pub(user), "reject", reason="exactly one binding claim required")
+
+    # NEITHER binding claim
+    v = join(root2, craft(leaf2, agent, payload_mut=lambda p: p.pop("sd_hash", None)))
+    assert_ap2_rejects("neither_binding_claim", v, user)
+    add("neither_binding_claim", "Terminal hop has NEITHER sd_hash nor issuer_jwt_hash.",
+        v, pub(user), "reject", reason="exactly one binding claim required")
+
+    # Terminal-typ hop carrying a cnf (mint a cnf-bearing hop @ merchant aud, flip typ->terminal)
+    inter_m = hop(root2, agent, OpenPaymentMandate(constraints=[], cnf=make_cnf(cp)), aud=AUD, nonce=NONCE)
+    v = join(root2, craft(inter_m, agent, header_mut=lambda hdr: hdr.__setitem__("typ", "kb+sd-jwt")))
+    assert_ap2_rejects("terminal_with_cnf", v, user)
+    add("terminal_with_cnf", "A terminal-typ hop that illegally carries a cnf claim.",
+        v, pub(user), "reject", reason="terminal MUST NOT carry cnf")
+
+    # Intermediate-typ hop with no cnf (mint terminal, flip typ->intermediate)
+    v = join(root2, craft(leaf2, agent, header_mut=lambda hdr: hdr.__setitem__("typ", "kb+sd-jwt+kb")))
+    assert_ap2_rejects("intermediate_without_cnf", v, user)
+    add("intermediate_without_cnf", "An intermediate-typ hop that is missing its required cnf claim.",
+        v, pub(user), "reject", reason="intermediate requires cnf")
+
+    # Expired (exp well in the past)
+    v = join(root2, craft(leaf2, agent, payload_mut=lambda p: p.__setitem__("exp", FROZEN_NOW - 100000)))
+    assert_ap2_rejects("expired", v, user)
+    add("expired", "Terminal hop carries an exp in the past.", v, pub(user), "reject", reason="token expired")
+
+    # Alg downgrade: 'none' on the root header
+    v = join(craft(root2, header_mut=lambda hdr: hdr.__setitem__("alg", "none"), resign=False), leaf2)
+    assert_ap2_rejects("alg_swap_none_root", v, user)
+    add("alg_swap_none_root", "Root header alg downgraded to 'none'.", v, pub(user), "reject", reason="alg not ES256")
+
+    # Alg swap: HS256 on the terminal hop header
+    v = join(root2, craft(leaf2, header_mut=lambda hdr: hdr.__setitem__("alg", "HS256"), resign=False))
+    assert_ap2_rejects("alg_swap_hs256_hop", v, user)
+    add("alg_swap_hs256_hop", "Terminal hop header alg swapped to HS256.", v, pub(user), "reject", reason="alg not ES256")
 
     PAIRS_OUT.write_text(json.dumps(emit_hash_pairs(chain2), indent=2) + "\n")
     OUT.write_text(json.dumps(vectors, indent=2) + "\n")
