@@ -1,0 +1,134 @@
+[
+  {
+    "name": "valid_payment_2hop",
+    "description": "Root SD-JWT (user) + terminal KB-SD-JWT (agent), in budget.",
+    "chain": "eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImV4YW1wbGUrc2Qtand0IiwgImtpZCI6ICJ1c2VyLTEifQ.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogImZqV2p3cHd0bFgxZmJkNk1nY1pWOTdOZ1EwM3RaRTN0cjdndllkMGxhYWsifV0sICJfc2RfYWxnIjogInNoYS0yNTYifQ.Fz5yG6MHknoevIBVWms2yGljr40MTd0wQtvuTwkbNURAHPXfROhqd0K_zbiGYGJd6rsYRgVDaV3hfW5uNGh32A~WyJOcjNoeUhUcWQxT1RDaEFNZXB3WlZRIiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50Lm9wZW4uMSIsICJjb25zdHJhaW50cyI6IFt7InR5cGUiOiAicGF5bWVudC5hbW91bnRfcmFuZ2UiLCAiY3VycmVuY3kiOiAiVVNEIiwgIm1heCI6IDUwMDB9XSwgImNuZiI6IHsiandrIjogeyJjcnYiOiAiUC0yNTYiLCAia2lkIjogImFnZW50LTEiLCAia3R5IjogIkVDIiwgIngiOiAiSFFsTUlIQ2pna05OdWoydFYzRmt5ZHhvdXhKdTdqZG9saE51SXcyeW5jMCIsICJ5IjogImxGRnlpQUJETVc4RGtyX3pFRTZCZlpJNHZMLWYyRUFhZTFFeWFKMDRac2MifX19XQ~~eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImtiK3NkLWp3dCIsICJraWQiOiAiYWdlbnQtMSJ9.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogIjIwTDBKcU45dUZLcGwyVzhCNEV1Undqb0Q0NXFxUWtNc3ZTUVdvbUxCekUifV0sICJpYXQiOiAxNzgwNzkxNTcxLCAiYXVkIjogIm1lcmNoYW50IiwgIm5vbmNlIjogIm5vbmNlLTEiLCAic2RfaGFzaCI6ICIzeGwwQWVrbFEzb0F2NDd5elRjOWIzR2hUMy1EdVpESFBzWk4td1VUeVhZIiwgIl9zZF9hbGciOiAic2hhLTI1NiJ9.NukDGaEBdKSkMXtx0S1V4yeHxu3Cq-xZBx6Bml2I2FhKHtoqRlkUob5Lt5wPzlRoTfwFgUb8kjSJL1IWW9f8Aw~WyJoTXpvQTNwRnY3UGtCcnM4MHI0UWNnIiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50LjEiLCAidHJhbnNhY3Rpb25faWQiOiAidHhfMSIsICJwYXllZSI6IHsiaWQiOiAicy0xIiwgIm5hbWUiOiAiU2hvcCJ9LCAicGF5bWVudF9hbW91bnQiOiB7ImFtb3VudCI6IDEwMDAsICJjdXJyZW5jeSI6ICJVU0QifSwgInBheW1lbnRfaW5zdHJ1bWVudCI6IHsiaWQiOiAicGktMSIsICJ0eXBlIjogImNyZWRpdCJ9fV0~",
+    "rootKey": {
+      "crv": "P-256",
+      "kid": "user-1",
+      "kty": "EC",
+      "x": "oQWlK0qW2JRKSxRsEbXuOkeRYz7bwjkIOF0a4cz5gaY",
+      "y": "y_Jw42SOOLNzYQAaabu0KF9EC30OVHdMmSVucOM9HZM"
+    },
+    "expectedAud": "merchant",
+    "expectedNonce": "nonce-1",
+    "expect": "valid",
+    "expectedPayloads": [
+      {
+        "vct": "mandate.payment.open.1",
+        "constraints": [
+          {
+            "type": "payment.amount_range",
+            "currency": "USD",
+            "max": 5000
+          }
+        ],
+        "cnf": {
+          "jwk": {
+            "crv": "P-256",
+            "kid": "agent-1",
+            "kty": "EC",
+            "x": "HQlMIHCjgkNNuj2tV3FkydxouxJu7jdolhNuIw2ync0",
+            "y": "lFFyiABDMW8Dkr_zEE6BfZI4vL-f2EAae1EyaJ04Zsc"
+          }
+        }
+      },
+      {
+        "vct": "mandate.payment.1",
+        "transaction_id": "tx_1",
+        "payee": {
+          "id": "s-1",
+          "name": "Shop"
+        },
+        "payment_amount": {
+          "amount": 1000,
+          "currency": "USD"
+        },
+        "payment_instrument": {
+          "id": "pi-1",
+          "type": "credit"
+        }
+      }
+    ]
+  },
+  {
+    "name": "tampered_root_payload",
+    "description": "One byte flipped in the root issuer-JWT payload.",
+    "chain": "eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImV4YW1wbGUrc2Qtand0IiwgImtpZCI6ICJ1c2VyLTEifQ.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogImZqV2p3cHd0bFgxZmJkNk1nY1pWOTdOZ1EwM3RaRTN0cjdndllkMGxhYWsifV0sICJfc2RfYWxnIjogInNoYS0yNTYifA.Fz5yG6MHknoevIBVWms2yGljr40MTd0wQtvuTwkbNURAHPXfROhqd0K_zbiGYGJd6rsYRgVDaV3hfW5uNGh32A~WyJOcjNoeUhUcWQxT1RDaEFNZXB3WlZRIiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50Lm9wZW4uMSIsICJjb25zdHJhaW50cyI6IFt7InR5cGUiOiAicGF5bWVudC5hbW91bnRfcmFuZ2UiLCAiY3VycmVuY3kiOiAiVVNEIiwgIm1heCI6IDUwMDB9XSwgImNuZiI6IHsiandrIjogeyJjcnYiOiAiUC0yNTYiLCAia2lkIjogImFnZW50LTEiLCAia3R5IjogIkVDIiwgIngiOiAiSFFsTUlIQ2pna05OdWoydFYzRmt5ZHhvdXhKdTdqZG9saE51SXcyeW5jMCIsICJ5IjogImxGRnlpQUJETVc4RGtyX3pFRTZCZlpJNHZMLWYyRUFhZTFFeWFKMDRac2MifX19XQ~~eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImtiK3NkLWp3dCIsICJraWQiOiAiYWdlbnQtMSJ9.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogIjIwTDBKcU45dUZLcGwyVzhCNEV1Undqb0Q0NXFxUWtNc3ZTUVdvbUxCekUifV0sICJpYXQiOiAxNzgwNzkxNTcxLCAiYXVkIjogIm1lcmNoYW50IiwgIm5vbmNlIjogIm5vbmNlLTEiLCAic2RfaGFzaCI6ICIzeGwwQWVrbFEzb0F2NDd5elRjOWIzR2hUMy1EdVpESFBzWk4td1VUeVhZIiwgIl9zZF9hbGciOiAic2hhLTI1NiJ9.NukDGaEBdKSkMXtx0S1V4yeHxu3Cq-xZBx6Bml2I2FhKHtoqRlkUob5Lt5wPzlRoTfwFgUb8kjSJL1IWW9f8Aw~WyJoTXpvQTNwRnY3UGtCcnM4MHI0UWNnIiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50LjEiLCAidHJhbnNhY3Rpb25faWQiOiAidHhfMSIsICJwYXllZSI6IHsiaWQiOiAicy0xIiwgIm5hbWUiOiAiU2hvcCJ9LCAicGF5bWVudF9hbW91bnQiOiB7ImFtb3VudCI6IDEwMDAsICJjdXJyZW5jeSI6ICJVU0QifSwgInBheW1lbnRfaW5zdHJ1bWVudCI6IHsiaWQiOiAicGktMSIsICJ0eXBlIjogImNyZWRpdCJ9fV0~",
+    "rootKey": {
+      "crv": "P-256",
+      "kid": "user-1",
+      "kty": "EC",
+      "x": "oQWlK0qW2JRKSxRsEbXuOkeRYz7bwjkIOF0a4cz5gaY",
+      "y": "y_Jw42SOOLNzYQAaabu0KF9EC30OVHdMmSVucOM9HZM"
+    },
+    "expectedAud": "merchant",
+    "expectedNonce": "nonce-1",
+    "expect": "reject",
+    "reason": "root signature invalid"
+  },
+  {
+    "name": "wrong_cnf_key",
+    "description": "Terminal hop signed by a key not named in the prior cnf.jwk.",
+    "chain": "eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImV4YW1wbGUrc2Qtand0IiwgImtpZCI6ICJ1c2VyLTEifQ.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogImZqV2p3cHd0bFgxZmJkNk1nY1pWOTdOZ1EwM3RaRTN0cjdndllkMGxhYWsifV0sICJfc2RfYWxnIjogInNoYS0yNTYifQ.Fz5yG6MHknoevIBVWms2yGljr40MTd0wQtvuTwkbNURAHPXfROhqd0K_zbiGYGJd6rsYRgVDaV3hfW5uNGh32A~WyJOcjNoeUhUcWQxT1RDaEFNZXB3WlZRIiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50Lm9wZW4uMSIsICJjb25zdHJhaW50cyI6IFt7InR5cGUiOiAicGF5bWVudC5hbW91bnRfcmFuZ2UiLCAiY3VycmVuY3kiOiAiVVNEIiwgIm1heCI6IDUwMDB9XSwgImNuZiI6IHsiandrIjogeyJjcnYiOiAiUC0yNTYiLCAia2lkIjogImFnZW50LTEiLCAia3R5IjogIkVDIiwgIngiOiAiSFFsTUlIQ2pna05OdWoydFYzRmt5ZHhvdXhKdTdqZG9saE51SXcyeW5jMCIsICJ5IjogImxGRnlpQUJETVc4RGtyX3pFRTZCZlpJNHZMLWYyRUFhZTFFeWFKMDRac2MifX19XQ~~eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImtiK3NkLWp3dCIsICJraWQiOiAib3RoZXItMSJ9.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogIm1GR0VQSVlZdl92Vm02anlMeC1qeUxnVVN4Z0JqQWNrajhZMjBrT2V0TmMifV0sICJpYXQiOiAxNzgwNzkxNTcxLCAiYXVkIjogIm1lcmNoYW50IiwgIm5vbmNlIjogIm5vbmNlLTEiLCAic2RfaGFzaCI6ICIzeGwwQWVrbFEzb0F2NDd5elRjOWIzR2hUMy1EdVpESFBzWk4td1VUeVhZIiwgIl9zZF9hbGciOiAic2hhLTI1NiJ9.zv48Zc8qSMNZleabRsHD8JDdrOl7vo2wc5aZQ-ghNU1UN-XaYwwPeK6F-kz6kRrkGkyA_BBNhFpeTLeLqaofvw~WyJWU3JDMlpjcmJLYnNIRzcxYnp3bGl3IiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50LjEiLCAidHJhbnNhY3Rpb25faWQiOiAidHhfMSIsICJwYXllZSI6IHsiaWQiOiAicy0xIiwgIm5hbWUiOiAiU2hvcCJ9LCAicGF5bWVudF9hbW91bnQiOiB7ImFtb3VudCI6IDEwMDAsICJjdXJyZW5jeSI6ICJVU0QifSwgInBheW1lbnRfaW5zdHJ1bWVudCI6IHsiaWQiOiAicGktMSIsICJ0eXBlIjogImNyZWRpdCJ9fV0~",
+    "rootKey": {
+      "crv": "P-256",
+      "kid": "user-1",
+      "kty": "EC",
+      "x": "oQWlK0qW2JRKSxRsEbXuOkeRYz7bwjkIOF0a4cz5gaY",
+      "y": "y_Jw42SOOLNzYQAaabu0KF9EC30OVHdMmSVucOM9HZM"
+    },
+    "expectedAud": "merchant",
+    "expectedNonce": "nonce-1",
+    "expect": "reject",
+    "reason": "hop signature does not verify under prev cnf.jwk"
+  },
+  {
+    "name": "aud_mismatch",
+    "description": "Valid chain, verifier expects a different audience.",
+    "chain": "eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImV4YW1wbGUrc2Qtand0IiwgImtpZCI6ICJ1c2VyLTEifQ.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogImZqV2p3cHd0bFgxZmJkNk1nY1pWOTdOZ1EwM3RaRTN0cjdndllkMGxhYWsifV0sICJfc2RfYWxnIjogInNoYS0yNTYifQ.Fz5yG6MHknoevIBVWms2yGljr40MTd0wQtvuTwkbNURAHPXfROhqd0K_zbiGYGJd6rsYRgVDaV3hfW5uNGh32A~WyJOcjNoeUhUcWQxT1RDaEFNZXB3WlZRIiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50Lm9wZW4uMSIsICJjb25zdHJhaW50cyI6IFt7InR5cGUiOiAicGF5bWVudC5hbW91bnRfcmFuZ2UiLCAiY3VycmVuY3kiOiAiVVNEIiwgIm1heCI6IDUwMDB9XSwgImNuZiI6IHsiandrIjogeyJjcnYiOiAiUC0yNTYiLCAia2lkIjogImFnZW50LTEiLCAia3R5IjogIkVDIiwgIngiOiAiSFFsTUlIQ2pna05OdWoydFYzRmt5ZHhvdXhKdTdqZG9saE51SXcyeW5jMCIsICJ5IjogImxGRnlpQUJETVc4RGtyX3pFRTZCZlpJNHZMLWYyRUFhZTFFeWFKMDRac2MifX19XQ~~eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImtiK3NkLWp3dCIsICJraWQiOiAiYWdlbnQtMSJ9.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogIjIwTDBKcU45dUZLcGwyVzhCNEV1Undqb0Q0NXFxUWtNc3ZTUVdvbUxCekUifV0sICJpYXQiOiAxNzgwNzkxNTcxLCAiYXVkIjogIm1lcmNoYW50IiwgIm5vbmNlIjogIm5vbmNlLTEiLCAic2RfaGFzaCI6ICIzeGwwQWVrbFEzb0F2NDd5elRjOWIzR2hUMy1EdVpESFBzWk4td1VUeVhZIiwgIl9zZF9hbGciOiAic2hhLTI1NiJ9.NukDGaEBdKSkMXtx0S1V4yeHxu3Cq-xZBx6Bml2I2FhKHtoqRlkUob5Lt5wPzlRoTfwFgUb8kjSJL1IWW9f8Aw~WyJoTXpvQTNwRnY3UGtCcnM4MHI0UWNnIiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50LjEiLCAidHJhbnNhY3Rpb25faWQiOiAidHhfMSIsICJwYXllZSI6IHsiaWQiOiAicy0xIiwgIm5hbWUiOiAiU2hvcCJ9LCAicGF5bWVudF9hbW91bnQiOiB7ImFtb3VudCI6IDEwMDAsICJjdXJyZW5jeSI6ICJVU0QifSwgInBheW1lbnRfaW5zdHJ1bWVudCI6IHsiaWQiOiAicGktMSIsICJ0eXBlIjogImNyZWRpdCJ9fV0~",
+    "rootKey": {
+      "crv": "P-256",
+      "kid": "user-1",
+      "kty": "EC",
+      "x": "oQWlK0qW2JRKSxRsEbXuOkeRYz7bwjkIOF0a4cz5gaY",
+      "y": "y_Jw42SOOLNzYQAaabu0KF9EC30OVHdMmSVucOM9HZM"
+    },
+    "expectedAud": "WRONG-aud",
+    "expectedNonce": "nonce-1",
+    "expect": "reject",
+    "reason": "terminal aud mismatch"
+  },
+  {
+    "name": "nonce_mismatch",
+    "description": "Valid chain, verifier expects a different nonce.",
+    "chain": "eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImV4YW1wbGUrc2Qtand0IiwgImtpZCI6ICJ1c2VyLTEifQ.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogImZqV2p3cHd0bFgxZmJkNk1nY1pWOTdOZ1EwM3RaRTN0cjdndllkMGxhYWsifV0sICJfc2RfYWxnIjogInNoYS0yNTYifQ.Fz5yG6MHknoevIBVWms2yGljr40MTd0wQtvuTwkbNURAHPXfROhqd0K_zbiGYGJd6rsYRgVDaV3hfW5uNGh32A~WyJOcjNoeUhUcWQxT1RDaEFNZXB3WlZRIiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50Lm9wZW4uMSIsICJjb25zdHJhaW50cyI6IFt7InR5cGUiOiAicGF5bWVudC5hbW91bnRfcmFuZ2UiLCAiY3VycmVuY3kiOiAiVVNEIiwgIm1heCI6IDUwMDB9XSwgImNuZiI6IHsiandrIjogeyJjcnYiOiAiUC0yNTYiLCAia2lkIjogImFnZW50LTEiLCAia3R5IjogIkVDIiwgIngiOiAiSFFsTUlIQ2pna05OdWoydFYzRmt5ZHhvdXhKdTdqZG9saE51SXcyeW5jMCIsICJ5IjogImxGRnlpQUJETVc4RGtyX3pFRTZCZlpJNHZMLWYyRUFhZTFFeWFKMDRac2MifX19XQ~~eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImtiK3NkLWp3dCIsICJraWQiOiAiYWdlbnQtMSJ9.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogIjIwTDBKcU45dUZLcGwyVzhCNEV1Undqb0Q0NXFxUWtNc3ZTUVdvbUxCekUifV0sICJpYXQiOiAxNzgwNzkxNTcxLCAiYXVkIjogIm1lcmNoYW50IiwgIm5vbmNlIjogIm5vbmNlLTEiLCAic2RfaGFzaCI6ICIzeGwwQWVrbFEzb0F2NDd5elRjOWIzR2hUMy1EdVpESFBzWk4td1VUeVhZIiwgIl9zZF9hbGciOiAic2hhLTI1NiJ9.NukDGaEBdKSkMXtx0S1V4yeHxu3Cq-xZBx6Bml2I2FhKHtoqRlkUob5Lt5wPzlRoTfwFgUb8kjSJL1IWW9f8Aw~WyJoTXpvQTNwRnY3UGtCcnM4MHI0UWNnIiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50LjEiLCAidHJhbnNhY3Rpb25faWQiOiAidHhfMSIsICJwYXllZSI6IHsiaWQiOiAicy0xIiwgIm5hbWUiOiAiU2hvcCJ9LCAicGF5bWVudF9hbW91bnQiOiB7ImFtb3VudCI6IDEwMDAsICJjdXJyZW5jeSI6ICJVU0QifSwgInBheW1lbnRfaW5zdHJ1bWVudCI6IHsiaWQiOiAicGktMSIsICJ0eXBlIjogImNyZWRpdCJ9fV0~",
+    "rootKey": {
+      "crv": "P-256",
+      "kid": "user-1",
+      "kty": "EC",
+      "x": "oQWlK0qW2JRKSxRsEbXuOkeRYz7bwjkIOF0a4cz5gaY",
+      "y": "y_Jw42SOOLNzYQAaabu0KF9EC30OVHdMmSVucOM9HZM"
+    },
+    "expectedAud": "merchant",
+    "expectedNonce": "WRONG-nonce",
+    "expect": "reject",
+    "reason": "terminal nonce mismatch"
+  },
+  {
+    "name": "wrong_root_key",
+    "description": "Valid chain verified against an unrelated root key.",
+    "chain": "eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImV4YW1wbGUrc2Qtand0IiwgImtpZCI6ICJ1c2VyLTEifQ.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogImZqV2p3cHd0bFgxZmJkNk1nY1pWOTdOZ1EwM3RaRTN0cjdndllkMGxhYWsifV0sICJfc2RfYWxnIjogInNoYS0yNTYifQ.Fz5yG6MHknoevIBVWms2yGljr40MTd0wQtvuTwkbNURAHPXfROhqd0K_zbiGYGJd6rsYRgVDaV3hfW5uNGh32A~WyJOcjNoeUhUcWQxT1RDaEFNZXB3WlZRIiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50Lm9wZW4uMSIsICJjb25zdHJhaW50cyI6IFt7InR5cGUiOiAicGF5bWVudC5hbW91bnRfcmFuZ2UiLCAiY3VycmVuY3kiOiAiVVNEIiwgIm1heCI6IDUwMDB9XSwgImNuZiI6IHsiandrIjogeyJjcnYiOiAiUC0yNTYiLCAia2lkIjogImFnZW50LTEiLCAia3R5IjogIkVDIiwgIngiOiAiSFFsTUlIQ2pna05OdWoydFYzRmt5ZHhvdXhKdTdqZG9saE51SXcyeW5jMCIsICJ5IjogImxGRnlpQUJETVc4RGtyX3pFRTZCZlpJNHZMLWYyRUFhZTFFeWFKMDRac2MifX19XQ~~eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImtiK3NkLWp3dCIsICJraWQiOiAiYWdlbnQtMSJ9.eyJkZWxlZ2F0ZV9wYXlsb2FkIjogW3siLi4uIjogIjIwTDBKcU45dUZLcGwyVzhCNEV1Undqb0Q0NXFxUWtNc3ZTUVdvbUxCekUifV0sICJpYXQiOiAxNzgwNzkxNTcxLCAiYXVkIjogIm1lcmNoYW50IiwgIm5vbmNlIjogIm5vbmNlLTEiLCAic2RfaGFzaCI6ICIzeGwwQWVrbFEzb0F2NDd5elRjOWIzR2hUMy1EdVpESFBzWk4td1VUeVhZIiwgIl9zZF9hbGciOiAic2hhLTI1NiJ9.NukDGaEBdKSkMXtx0S1V4yeHxu3Cq-xZBx6Bml2I2FhKHtoqRlkUob5Lt5wPzlRoTfwFgUb8kjSJL1IWW9f8Aw~WyJoTXpvQTNwRnY3UGtCcnM4MHI0UWNnIiwgeyJ2Y3QiOiAibWFuZGF0ZS5wYXltZW50LjEiLCAidHJhbnNhY3Rpb25faWQiOiAidHhfMSIsICJwYXllZSI6IHsiaWQiOiAicy0xIiwgIm5hbWUiOiAiU2hvcCJ9LCAicGF5bWVudF9hbW91bnQiOiB7ImFtb3VudCI6IDEwMDAsICJjdXJyZW5jeSI6ICJVU0QifSwgInBheW1lbnRfaW5zdHJ1bWVudCI6IHsiaWQiOiAicGktMSIsICJ0eXBlIjogImNyZWRpdCJ9fV0~",
+    "rootKey": {
+      "crv": "P-256",
+      "kid": "other-1",
+      "kty": "EC",
+      "x": "0-p3D1ApVAykiVb49JYgWa2LFzhmNwA7S4-Q4ins0PI",
+      "y": "e6XT7lnrAbShgwSbTcc96Lfnb0974Q8licSm2L09QiQ"
+    },
+    "expectedAud": "merchant",
+    "expectedNonce": "nonce-1",
+    "expect": "reject",
+    "reason": "root signature does not verify under given key"
+  }
+]
