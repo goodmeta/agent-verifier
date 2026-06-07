@@ -74,23 +74,25 @@ authoritative encoding of the referenced Delegate SD-JWT algorithm.
 | L1-7 | Standard RFC 9901 disclosure unpack: `{"...":digest}` array elements + `_sd:[digest]` object members; strip `_sd`/`_sd_alg`; reject duplicate disclosure hashes, duplicate `_sd` digests, duplicate disclosed keys; `sha-256` only | SDK `sd_jwt` lib `_unpack_disclosed_claims` | `sd-jwt.ts` `resolveDisclosures`/`unpack` (line-for-line port of the Python lib) | `sd-jwt.test.ts` expectedPayloads[0] deepEqual; non-sha-256 reject; duplicate-hash reject | ✅ |
 | L1-8 | AP2 `delegate_payload` resolution: inline a delegate item's own object-property `_sd` (`_inline_sd_claims`); decode bare-string items | SDK `chain.py::_resolve_delegate_items` | `sd-jwt.ts` `resolveDelegateItems` | `sd-jwt.test.ts` valid_payment_2hop (root item == AP2) | ✅ |
 | L1-9 | CMWallet quirk: `delegate_payload` items that are bare digest **strings** resolve in place to the matching disclosure's dict value | SDK `kb_sd_jwt.py::_resolve_delegate_payload` | `sd-jwt.ts` `resolveDelegatePayload` | `sd-jwt.test.ts` "bare digest string resolves" / "unmatched untouched" | ✅ |
-| L1-10 | KB hop `typ` ∈ {`kb+sd-jwt`,`kb-sd-jwt`} (terminal) / {`kb+sd-jwt+kb`,`kb-sd-jwt+kb`} (intermediate) | SDK `kb_sd_jwt.py::TYP_*` | `kb-sd-jwt.ts` | vectors: valid_payment_2hop (terminal), **3hop (intermediate)** | ⏳P3 |
-| L1-11 | KB hop signature verifies (ES256) under the **previous hop's `cnf.jwk`** | SPEC-11; AUTH-3/4; SDK `kb_sd_jwt.py::verify` | `kb-sd-jwt.ts` (jose ES256) | vector `wrong_cnf_key` ⇒ reject | ⏳P3 |
-| L1-12 | Binding: **exactly one** of `sd_hash`/`issuer_jwt_hash` present and equal to the computed hash of `prev`; both-present AND both-absent are errors | AUTH-5; SDK `common.py::verify_binding` | `kb-sd-jwt.ts` `verifyBinding` | vectors: bad-`sd_hash`, reordered-disclosure, `issuer_jwt_hash`-mode, both/neither | ⏳P3 |
-| L1-13 | `cnf` resolution is 3-tier (`_find_cnf`): delegate_items[*].cnf → verified_payload.delegate_payload[*].cnf → top-level `cnf`; jwk validated strict EC P-256 | AUTH-3; SDK `common.py::_find_cnf`/`cnf_jwk` | `jwk.ts` (strict schema ✅); `chain.ts` 3-tier resolution | jwk.test.ts ✅; chain 3-tier vector | jwk ✅ / chain ⏳P3 |
-| L1-14 | Terminal hop MUST NOT carry `cnf`; intermediate hop MUST carry `cnf`; non-terminal resolves exactly 1 delegate item | SDK `kb_sd_jwt.py::verify` | `kb-sd-jwt.ts` | vectors: terminal-with-cnf, intermediate-without-cnf | ⏳P3 |
-| L1-15 | `exp`/`iat` time checks per token + per delegate item (clock-skew window) | AUTH-24; SDK `chain.py::_check_time_claims` | `chain.ts` `checkTimeClaims` | vector: expired | ⏳P3 |
-| L1-16 | Chain walk: root via key provider; hop *i* via hop *i-1* `cnf.jwk`; returns per-hop effective payloads `[open, …, closed]` | AUTH-14; SDK `chain.py::verify_chain` | `chain.ts` `verifyChain` | vector valid_payment_2hop ⇒ `[open, payment]`; 3hop | ⏳P3 |
+| L1-10 | KB hop `typ` ∈ {`kb+sd-jwt`,`kb-sd-jwt`} (terminal) / {`kb+sd-jwt+kb`,`kb-sd-jwt+kb`} (intermediate) | SDK `kb_sd_jwt.py::TYP_*` | `kb-sd-jwt.ts` `verifyKbHop` | `chain.test.ts` 2hop (terminal) + 3hop (intermediate) accepted; wrong-typ reject vector pending | ✅¹ |
+| L1-11 | KB hop signature verifies (ES256) under the **previous hop's `cnf.jwk`** | SPEC-11; AUTH-3/4; SDK `kb_sd_jwt.py::verify` | `kb-sd-jwt.ts` (jose ES256) + `sd-jwt.ts` `cnfJwk` | `chain.test.ts` `wrong_cnf_key` ⇒ reject | ✅ |
+| L1-12 | Binding: **exactly one** of `sd_hash`/`issuer_jwt_hash` present and equal to the computed hash of `prev`; both-present AND both-absent are errors | AUTH-5; SDK `common.py::verify_binding` | `kb-sd-jwt.ts` `verifyBinding` | `chain.test.ts` `binding_sd_hash_mismatch` ⇒ reject; `..._issuer_jwt_hash` ⇒ valid (both modes); both/neither reject vectors pending | ✅¹ |
+| L1-13 | `cnf` resolution is 3-tier (`_find_cnf`): delegate_items[*].cnf → verified_payload.delegate_payload[*].cnf → top-level `cnf`; jwk validated strict EC P-256 | AUTH-3; SDK `common.py::_find_cnf`/`cnf_jwk` | `jwk.ts` (strict schema); `sd-jwt.ts` `cnfJwk` (3-tier) | `jwk.test.ts` + `chain.test.ts` 3hop (cp resolved from agent hop's cnf) | ✅ |
+| L1-14 | Terminal hop MUST NOT carry `cnf`; intermediate hop MUST carry `cnf`; non-terminal resolves exactly 1 delegate item | SDK `kb_sd_jwt.py::verify` | `kb-sd-jwt.ts` `delegatePayloadHasCnf` | `chain.test.ts` valid 2hop (terminal-no-cnf) + 3hop (intermediate-cnf) accepted; terminal-with-cnf / intermediate-without-cnf reject vectors pending | ✅¹ |
+| L1-15 | `exp`/`iat` time checks per token + per delegate item (clock-skew window) | AUTH-24; SDK `chain.py::_check_time_claims` | `chain.ts` `checkTimeClaims` | iat checked on every valid-chain hop; expired-reject vector pending | ✅¹ |
+| L1-16 | Chain walk: root via key provider; hop *i* via hop *i-1* `cnf.jwk`; returns per-hop effective payloads `[open, …, closed]` | AUTH-14; SDK `chain.py::verify_chain` | `chain.ts` `verifyChain` | `chain.test.ts` 2hop ⇒ `[open,payment]`, 3hop ⇒ `[open,open,payment]`, byte-exact vs AP2 | ✅ |
+
+¹ Positive path covered byte-exact vs AP2 vectors; the explicit negative vector (hand-built per PLAN §7) is the remaining P3 item — see §11 note.
 
 ## 5. Layer 1′ — hardenings OVER AP2 chain mechanics (stricter on trust)
 
 | # | Hardening (PLAN §5) | What AP2 does | Our stricter behavior | Status |
 |---|---|---|---|---|
-| H1 | **Alg pin** | Defers `alg` to upstream lib; examples show ES256 but no exclusivity stated (SPEC-2, IMPL-32/40) | Pin **ES256** in our jose verifier on **every** signature (root ✅; every hop P3); reject none/HS256/RS256/alg-swap | 🔒 root ✅ / hops ⏳P3 |
+| H1 | **Alg pin** | Defers `alg` to upstream lib; examples show ES256 but no exclusivity stated (SPEC-2, IMPL-32/40) | Pin **ES256** (`{algorithms:['ES256']}`) in `sd-jwt.ts` `verifyEs256` on **every** signature (root + every hop); reject none/HS256/RS256 | 🔒 root+hops ✅ (alg-swap reject vector pending) |
 | H2 | **x5c fail-closed** | x5c chain check **fails open** when no trusted roots configured | `trustedRoots` mandatory; per-cert validity, CA+pathLen, keyUsage, name chaining, leaf curve = P-256 | 🔒 ⏳P4 |
-| H3 | **Single, signed cnf** | First-match across 3 tiers; a disclosure-injected `cnf` can win | Require a **single unambiguous** `cnf` whose digest is in the issuer-signed `_sd` | 🔒 ⏳P3 |
-| H4 | **aud+nonce required** | Optional; enforced terminal-only if caller passes them | `expectedAud`+`expectedNonce` **required** for any KB-bearing chain (fail closed if absent) | 🔒 ⏳P3 |
-| H5 | **DoS caps** | No caps; O(disclosures×digests) rehash | Hard caps before crypto (token bytes ≤64KB, depth ≤8, disclosures ≤64/token, delegate items ≤16); digest→value `Map` | 🔒 ⏳P3 |
+| H3 | **Single, signed cnf** | First-match across 3 tiers; a disclosure-injected `cnf` can win | `sd-jwt.ts` `cnfJwk`: reject if >1 delegate item carries a `cnf`. Signed-`_sd` digest binding refinement + ambiguous-cnf vector pending | 🔒 ✅ (guard) / refinement ⏳ |
+| H4 | **aud+nonce required** | Optional; enforced terminal-only if caller passes them | `chain.ts`: `expectedAud`+`expectedNonce` **required** for any KB-bearing chain (fail closed if absent) | 🔒 ✅ (`chain.test.ts` H4) |
+| H5 | **DoS caps** | No caps; O(disclosures×digests) rehash | `chain.ts` `enforceCaps` before crypto (depth ≤8, token ≤64KB, disclosures ≤64/token); digest→value `Map` in unpack | 🔒 ✅ (`chain.test.ts` H5 depth; byte/disclosure caps implemented) |
 | H6 | **Self-computed linkage** | `transaction_id`/`checkout_hash` taken caller-supplied | Self-compute from actual bytes; mandatory match; no constraint eval without the tie | 🔒 ⏳P5 |
 | H7 | **x5c anchored-not-present** | trusted root = "last cert signed by a configured root" | Match AP2 here (wire-compat): anchor by signature, root need not be in the chain | (parity, P4) ⏳P4 |
 
@@ -162,26 +164,33 @@ engine is a **different, non-AP2** model and is quarantined — it does not sati
 
 ---
 
-## 11. Coverage summary (as of `c6b79d6`, P0–P2)
+## 11. Coverage summary (as of `ece17aa`, P0–P3 core)
 
-| Layer | Total reqs | ✅ COVERED | 🔒 hardened (root/now) | ⏳ pending (phase) | 📋/⛔ |
+| Layer | Total reqs | ✅ COVERED | 🔒 hardened (now) | ⏳ pending (phase) | 📋/⛔ |
 |---|---|---|---|---|---|
-| L1 chain mechanics | 16 | 9 (L1-1…L1-9) | H1 root | 7 → P3 (L1-10…L1-16) | — |
-| L1′ hardenings | 7 | — | H1 root | H1 hops, H2–H7 → P3/P4/P5 | — |
-| L2 mandate semantics | 7 | — | — | 7 → P3/P5 | — |
+| L1 chain mechanics | 16 | 16 (L1-1…L1-16)¹ | H1 root+hops | negative vectors (see note) | — |
+| L1′ hardenings | 7 | — | H1 ✅, H3 ✅(guard), H4 ✅, H5 ✅ | H2 →P4, H6 →P5, H7 →P4; H3 signed-`_sd` refinement | — |
+| L2 mandate semantics | 7 | — | — | 7 → P5 | — |
 | L3 constraints | 11 | — | H6 | 11 → P5 | budget total 📋 |
 | L4 linkage & receipts | 6 | hash primitives | H6 | wrappers → P5 | L4-6 📋/⛔ |
-| L5 trust & alg | 4 | 2 (L5-2, L5-4) | H1/H2 | x5c → P4 | — |
+| L5 trust & alg | 4 | 2 (L5-2, L5-4) | H1 | x5c → P4 (H2) | — |
 | O out-of-scope | 9 | — | — | — | 9 |
 
-**Done today (P0–P2):** canonical chain split/parse, ASCII binding-hash math (`sd_hash`/`issuer_jwt_hash`/disclosure
-digest), strict EC-P256 JWK, root ES256 signature verify, and full disclosure resolution (standard
-unpack + AP2 delegate-item inline + CMWallet quirk) — each byte-exact vs AP2's SDK output.
+¹ Every L1 row's **positive** path is byte-exact vs AP2's SDK output. The remaining P3 work is purely
+the **negative vectors** (each hand-built per PLAN §7, since AP2's `create` won't natively emit a
+malformed token): wrong-`typ`, both/neither binding claims, terminal-with-`cnf`, intermediate-without-`cnf`,
+expired (`exp` past), disclosure-reorder, alg-swap (none/HS256/RS256), ambiguous-`cnf`. The code paths
+that would reject these already exist and run on the valid path; they just lack a dedicated red vector.
 
-**Next to green:** P3 (kb-sd-jwt + chain walk: typ, hop-sig-under-cnf, exactly-one binding, terminal
-aud/nonce, single+signed cnf, time, caps — vectors: 3hop, wrong_cnf_key, aud/nonce_mismatch, bad-sd_hash,
-disclosure-reorder, issuer_jwt_hash-mode, terminal-with-cnf, intermediate-without-cnf, expired, alg-swap).
-Then P5 (vct, open↔closed, 8+2 constraints incl. max-flow, linkage, receipt-reference) and P4 (x5c).
+**Done (P0–P3 core):** canonical chain split/parse; ASCII binding-hash math; strict EC-P256 JWK; full
+disclosure resolution (standard unpack + delegate-item inline + CMWallet); root **and hop** ES256
+signature verify; full chain walk with `cnf` hop-chaining, exactly-one `sd_hash`/`issuer_jwt_hash`
+binding (both modes), terminal aud/nonce, single-`cnf` guard (H3), aud+nonce-required (H4), DoS caps
+(H5) — 2-hop, 3-hop, and issuer_jwt_hash chains verify byte-exact vs AP2; all 6 reject vectors reject.
+
+**Next to green:** the P3 negative vectors above (hand-built); then P4 (x5c fail-closed, H2/H7) and
+P5 (vct exact-match, open↔closed unchanged, 8+2 constraints incl. line-items max-flow, linkage
+self-compute H6, receipt-reference).
 
 ## 12. Re-audit / reproduce
 
