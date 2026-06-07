@@ -13,11 +13,10 @@ We mis-modeled AP2 twice (EIP-712, then plain whole-payload JWS — which is act
 **Explicit non-goals (documented, not silent):** issuing/signing chains; revocation/status lists; **non-ES256 / non-P-256** (AP2's chain is cert-hash-agnostic and could mint P-384 — we reject; stated narrowing, deps-agent §scope); the legacy camelCase `IntentMandate`/`CartMandate` (quarantined as `legacy`, not "AP2").
 
 ## 3. Dependencies (audited + reality-checked)
-- `@sd-jwt/core` + `@sd-jwt/decode` (+ transitive `@sd-jwt/{types,utils,present}`) — v0.19.0, Apache-2.0, OWF, maintained, high adoption. Used **only** for RFC 9901 disclosure math (`decodeSdJwt`, `unpack`, `getSDAlgAndPayload`, `Disclosure.digest`). **It pins no alg and never resolves header keys** (verified in source) — good, but means alg-pinning is entirely OURS.
+- **DEVIATION from the original deps plan (P2, 2026-06-07): RFC 9901 disclosure math is ported natively, NOT via `@sd-jwt/decode`.** Rationale: AP2's reference output (our golden vectors) is minted by the **Python `sd_jwt` lib** (`SDJWTVerifier._unpack_disclosed_claims`), not the TS `@sd-jwt` lib. `@sd-jwt/decode` is a *different* implementation that could diverge on edge cases (decoy digests, duplicate-key/hash handling) and would itself need golden-vector validation against AP2's Python output. Porting the Python lib's `_unpack_disclosed_claims` line-for-line into `sd-jwt.ts` is byte-exact-faithful to AP2's actual behavior, keeps all three resolution layers (standard unpack + `_inline_sd_claims` + CMWallet `_resolve_delegate_payload`) in one coherent module, and avoids a new dependency + its transitive `js-base64` pin (supply-chain surface). The unpack is ~40 lines over `node:crypto` (already used by `hash.ts`) + `Buffer.from(…, 'base64url')`. Validated byte-exact against `expectedPayloads` from AP2's SDK.
 - `jose` (already pinned 6.2.3) — **every signature** (root + all hops) via `compactVerify(..., { algorithms: ['ES256'] })`, key supplied out-of-band as a `CryptoKey`/`KeyLike` (never raw bytes an HMAC could eat).
 - `crypto.X509Certificate` (node built-in, Node 20+) — x5c: `new X509Certificate(der)`, `.verify(pubKey)` per link, `.checkIssued()`, `.publicKey`, `.validFrom/.validTo`, `.ca`, `.keyUsage`. **Sufficient — no `@peculiar/x509`.**
-- **Pin the new transitive `js-base64`** (enters via `@sd-jwt/utils` `^3.7.8`, BSD-3) exactly, per our exact-pin policy.
-- Corrections from deps red team: there is **no zod peer dep** on @sd-jwt (claim removed); stay on `0.19.0` exact (ignore `next` tag).
+- No new runtime deps added in P2. (Original plan called for `@sd-jwt/{core,decode}` + transitive `js-base64`; superseded by the native port above.)
 
 ## 4. Verification algorithm — corrected to AP2's real behavior
 Each numbered item folds a correctness-agent P0/P1/P4 finding.
@@ -80,7 +79,7 @@ Rename `mandate-jwt.ts` `signMandate`/`verifyMandate` → `signReceipt`/`verifyR
 5. LineItems max-flow port (P2-15).
 
 ## 12. Open questions — RESOLVED by the red team (kept for the record)
-- @sd-jwt vs jose for sig → **jose for all sigs (ES256-pinned); @sd-jwt/decode for disclosure math only.**
+- @sd-jwt vs jose for sig → **jose for all sigs (ES256-pinned).** Disclosure math: **ported natively** (mirror of the Python `sd_jwt` lib AP2 actually uses), not `@sd-jwt/decode` — see §3 deviation (P2).
 - x5c lib → **node `crypto.X509Certificate`, no @peculiar/x509.**
 - `issuer_jwt_hash` in v1 → **yes, both modes (load-bearing).**
 - DoS caps → **token ≤64KB, depth ≤8, disclosures ≤64/token, delegate items ≤16** (initial; tune).
