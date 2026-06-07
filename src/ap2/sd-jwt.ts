@@ -32,6 +32,7 @@ import { Buffer } from "node:buffer";
 import { compactVerify, type CryptoKey, type JWK as JoseJwk, type KeyObject } from "jose";
 import type { ParsedToken } from "./parse.js";
 import { computeDisclosureDigest } from "./hash.js";
+import { parseJwk, type Jwk } from "./jwk.js";
 
 /** A jose-importable verification key, or a bare JWK jose imports for us. */
 export type VerificationKey = CryptoKey | KeyObject | JoseJwk | Uint8Array;
@@ -260,22 +261,71 @@ export function resolveDelegateItems(delegatePayload: unknown, token: ParsedToke
 
 // ── Root SD-JWT verify ───────────────────────────────────────────────────────
 
-export interface VerifiedRoot {
+export interface ResolvedToken {
+  /** The parsed token this resolution belongs to. */
+  token: ParsedToken;
   /** Full issuer-verified payload after Layer A disclosure resolution. */
   verifiedPayload: Json;
   /** Effective delegate items (Layer B) — `[OpenMandate]` for a payment root. */
   delegateItems: Json[];
 }
 
+/** Verify one ES256 compact JWS signature; throws on any failure. Key is supplied
+ * out-of-band — a header `jwk`/`jku`/`x5u`/`kid` is NEVER trusted to pick it. */
+export async function verifyEs256(issuerJwt: string, key: VerificationKey): Promise<void> {
+  await compactVerify(issuerJwt, key as Parameters<typeof compactVerify>[1], { algorithms: ["ES256"] });
+}
+
 /**
  * Verify the root issuer JWT signature (ES256, pinned) and resolve its
  * disclosures. `key` is the issuer's public key, supplied out-of-band (x5c/kid
- * trust is resolved by the caller in P4); a header `jwk`/`kid` is NEVER trusted
- * to pick the key.
+ * trust is resolved by the caller in P4).
  */
-export async function verifyRootSdJwt(token: ParsedToken, key: VerificationKey): Promise<VerifiedRoot> {
-  await compactVerify(token.issuerJwt, key as Parameters<typeof compactVerify>[1], { algorithms: ["ES256"] });
+export async function verifyRootSdJwt(token: ParsedToken, key: VerificationKey): Promise<ResolvedToken> {
+  await verifyEs256(token.issuerJwt, key);
   const verifiedPayload = resolveDisclosures(token.payload, token.disclosures, token.sdAlg);
   const delegateItems = resolveDelegateItems(verifiedPayload["delegate_payload"], token);
-  return { verifiedPayload, delegateItems };
+  return { token, verifiedPayload, delegateItems };
+}
+
+// ── cnf.jwk resolution (3-tier `_find_cnf`, + single-cnf hardening H3) ────────
+
+function cnfDict(value: unknown): Json | null {
+  return isPlainObject(value) && isPlainObject(value["jwk"]) ? value : null;
+}
+
+function firstCnfInList(list: unknown): Json | null {
+  if (!Array.isArray(list)) return null;
+  for (const item of list) {
+    if (isPlainObject(item)) {
+      const c = cnfDict(item["cnf"]);
+      if (c) return c;
+    }
+  }
+  return null;
+}
+
+/**
+ * Resolve the `cnf.jwk` that the NEXT hop must be signed under. Port of AP2's
+ * `common.py::_find_cnf` (3-tier: delegate_items[*].cnf → verified
+ * delegate_payload[*].cnf → top-level cnf), returned as a strict EC-P256 JWK.
+ *
+ * Hardening H3 (stricter than AP2's first-match): reject if MORE THAN ONE
+ * delegate item carries a `cnf` — a disclosure-injected second `cnf` must not be
+ * able to silently win. (The signed-`_sd` binding refinement is pending a
+ * crafted ambiguous-cnf vector.)
+ */
+export function cnfJwk(resolved: ResolvedToken): Jwk {
+  const itemsWithCnf = resolved.delegateItems.filter((it) => cnfDict(it["cnf"]) !== null);
+  if (itemsWithCnf.length > 1) {
+    throw new Error("Ambiguous cnf: more than one delegate item carries a cnf claim");
+  }
+  const cnf =
+    (itemsWithCnf[0] ? cnfDict(itemsWithCnf[0]["cnf"]) : null) ??
+    firstCnfInList(resolved.verifiedPayload["delegate_payload"]) ??
+    cnfDict(resolved.verifiedPayload["cnf"]);
+  if (!cnf) throw new Error("Previous token missing cnf.jwk");
+  const jwk = parseJwk(cnf["jwk"]);
+  if (!jwk) throw new Error("cnf.jwk is not a valid EC P-256 JWK");
+  return jwk;
 }
