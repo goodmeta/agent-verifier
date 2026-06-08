@@ -34,17 +34,23 @@ time (so it is a true negative per AP2, not merely per our assumption).
 """
 from __future__ import annotations
 
+import datetime
 import hashlib
 import json
 import pathlib
 from types import SimpleNamespace
 
+from cryptography import x509
+from cryptography.x509.oid import NameOID
+from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives.serialization import Encoding
 from jwcrypto.jwk import JWK
 from jwcrypto.jws import JWS
 
 from ap2.sdk.mandate import MandateClient, _canonical_chain_segment
 from ap2.sdk.sdjwt import common, kb_sd_jwt, sd_jwt
+from ap2.sdk.sdjwt.chain import X5cOrKidPublicKeyProvider
 from ap2.sdk.utils import b64url_decode, b64url_encode
 from ap2.sdk.generated.open_payment_mandate import OpenPaymentMandate, AmountRange
 from ap2.sdk.generated.payment_mandate import PaymentMandate
@@ -153,6 +159,37 @@ def craft(segment: str, signing_key: JWK | None = None, *, header_mut=None, payl
     else:
         new_ij = ".".join([b64url_encode(json.dumps(header, separators=(",", ":")).encode()), p_b64, s_b64])
     return "~".join([new_ij] + tilde[1:])
+
+
+# ── x5c certificate infrastructure (hand-built; AP2 helpers only do kid) ──────
+CERT_NB = datetime.datetime(2025, 1, 1)
+CERT_NA = datetime.datetime(2030, 1, 1)
+EXPIRED_NB = datetime.datetime(2020, 1, 1)
+EXPIRED_NA = datetime.datetime(2021, 1, 1)
+_SERIAL = [1000]
+
+
+def ec_key(scalar: int, curve=ec.SECP256R1()):
+    return ec.derive_private_key(scalar, curve)
+
+
+def make_cert(subject, issuer_cn, sub_pubkey, iss_privkey, ca, *, nb=CERT_NB, na=CERT_NA, sig_hash=hashes.SHA256()):
+    _SERIAL[0] += 1
+    ku = x509.KeyUsage(
+        digital_signature=not ca, content_commitment=False, key_encipherment=False, data_encipherment=False,
+        key_agreement=False, key_cert_sign=ca, crl_sign=ca, encipher_only=False, decipher_only=False)
+    return (x509.CertificateBuilder()
+            .subject_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, subject)]))
+            .issuer_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, issuer_cn)]))
+            .public_key(sub_pubkey).serial_number(_SERIAL[0])
+            .not_valid_before(nb).not_valid_after(na)
+            .add_extension(x509.BasicConstraints(ca=ca, path_length=None), critical=True)
+            .add_extension(ku, critical=True)
+            .sign(iss_privkey, sig_hash))
+
+
+def der_b64url(cert) -> str:
+    return b64url_encode(cert.public_bytes(Encoding.DER))
 
 
 def emit_hash_pairs(chain: str) -> dict:
@@ -320,6 +357,104 @@ def main() -> None:
     v = join(root2, craft(leaf2, header_mut=lambda hdr: hdr.__setitem__("alg", "HS256"), resign=False))
     assert_ap2_rejects("alg_swap_hs256_hop", v, user)
     add("alg_swap_hs256_hop", "Terminal hop header alg swapped to HS256.", v, pub(user), "reject", reason="alg not ES256")
+
+    # ── x5c trust-anchoring vectors (P4). Cert chains are hand-built (AP2 helpers
+    #    only do kid). The root SD-JWT is signed by the leaf key and carries an
+    #    x5c header [leaf, intermediate]; the trusted root is NOT in the chain. ──
+    def add_x5c(name, description, chain, trusted_root_ders, expect, *, reason=None, payloads=None, hardening=False):
+        v = {"name": name, "description": description, "chain": chain, "kind": "x5c",
+             "x5cTrustedRoots": trusted_root_ders, "expectedAud": AUD, "expectedNonce": NONCE, "expect": expect}
+        if reason:
+            v["reason"] = reason
+        if hardening:
+            v["hardening"] = True  # AP2 ACCEPTS this; we reject (stricter, H2)
+        if payloads is not None:
+            v["expectedPayloads"] = payloads
+        vectors.append(v)
+
+    def ap2_x5c(chain, trusted_roots):
+        provider = X5cOrKidPublicKeyProvider(lambda _k: None, trusted_roots=trusted_roots)
+        return h.verify(token=chain, key_or_provider=provider, expected_aud=AUD, expected_nonce=NONCE)
+
+    def assert_ap2_x5c_accepts(name, chain, trusted_roots):
+        try:
+            ap2_x5c(chain, trusted_roots)
+        except Exception as e:  # noqa: BLE001
+            raise SystemExit(f"[FATAL] x5c hardening vector '{name}' was REJECTED by AP2 ({e}) — not a stricter-than-AP2 case")
+
+    def assert_ap2_x5c_rejects(name, chain, trusted_roots):
+        try:
+            ap2_x5c(chain, trusted_roots)
+        except Exception:  # noqa: BLE001
+            return
+        raise SystemExit(f"[FATAL] x5c reject vector '{name}' was ACCEPTED by AP2")
+
+    def x5c_chain(sign_jwk, x5c_certs, alg=None):
+        # Build the SD-JWT structure with the P-256 leaf (the lib hardcodes
+        # ES256), then re-sign with `sign_jwk` and add the x5c header (+ alg
+        # override for the P-384 wrong-curve case).
+        base = sd_jwt.create(
+            payload=OpenPaymentMandate(constraints=[AmountRange(currency="USD", max=5000)], cnf=make_cnf(agent)),
+            issuer_key=leaf_jwk,
+        ).sd_jwt_issuance
+
+        def mut(hdr):
+            hdr["x5c"] = [der_b64url(c) for c in x5c_certs]
+            if alg:
+                hdr["alg"] = alg
+
+        rx = craft(base, sign_jwk, header_mut=mut)
+        return join(rx, hop(rx, agent, payment(), aud=AUD, nonce=NONCE))
+
+    root_ca_k, inter_k, leaf_k = ec_key(0xA1), ec_key(0xB2), ec_key(0xC3)
+    leaf_jwk = JWK.from_pyca(leaf_k)
+    root_ca = make_cert("ap2-root", "ap2-root", root_ca_k.public_key(), root_ca_k, True)
+    inter = make_cert("ap2-intermediate", "ap2-root", inter_k.public_key(), root_ca_k, True)
+    leaf = make_cert("ap2-leaf", "ap2-intermediate", leaf_k.public_key(), inter_k, False)
+    root_ca_der = der_b64url(root_ca)
+
+    # valid: leaf -> intermediate -> (trusted) root
+    cx = x5c_chain(leaf_jwk, [leaf, inter])
+    payloads_x5c = ap2_x5c(cx, [root_ca])
+    add_x5c("valid_x5c", "Root signed by an x5c leaf chaining leaf->intermediate->trusted root.",
+            cx, [root_ca_der], "valid", payloads=payloads_x5c)
+
+    # untrusted root (we provide an unrelated trusted root) — AP2 rejects too
+    unrel_k = ec_key(0xD4)
+    unrel_root = make_cert("unrelated-root", "unrelated-root", unrel_k.public_key(), unrel_k, True)
+    assert_ap2_x5c_rejects("x5c_untrusted_root", cx, [unrel_root])
+    add_x5c("x5c_untrusted_root", "Valid chain, but anchored against an unrelated trusted root.",
+            cx, [der_b64url(unrel_root)], "reject", reason="does not chain to a trusted root")
+
+    # fail-open (H2): valid chain, but NO trusted roots configured — AP2 accepts, we reject
+    assert_ap2_x5c_accepts("x5c_fail_open", cx, None)
+    add_x5c("x5c_fail_open", "Valid chain with NO trusted roots configured (AP2 fails open).",
+            cx, [], "reject", reason="no trustedRoots — refusing to fail open", hardening=True)
+
+    # expired leaf (H2): AP2 ignores validity, we reject
+    leaf_exp = make_cert("ap2-leaf-expired", "ap2-intermediate", leaf_k.public_key(), inter_k, False,
+                         nb=EXPIRED_NB, na=EXPIRED_NA)
+    cx_exp = x5c_chain(leaf_jwk, [leaf_exp, inter])
+    assert_ap2_x5c_accepts("x5c_expired", cx_exp, [root_ca])
+    add_x5c("x5c_expired", "Leaf certificate is expired (AP2 does not check validity).",
+            cx_exp, [root_ca_der], "reject", reason="cert outside validity window", hardening=True)
+
+    # non-CA intermediate (H2): same subject CN + key as the real intermediate
+    # (so name-chaining + signature pass) but basicConstraints CA:FALSE. AP2
+    # ignores basicConstraints and accepts; we reject on the CA check.
+    inter_nonca = make_cert("ap2-intermediate", "ap2-root", inter_k.public_key(), root_ca_k, False)
+    cx_nonca = x5c_chain(leaf_jwk, [leaf, inter_nonca])
+    assert_ap2_x5c_accepts("x5c_non_ca_intermediate", cx_nonca, [root_ca])
+    add_x5c("x5c_non_ca_intermediate", "Intermediate lacks basicConstraints CA:TRUE (AP2 ignores it).",
+            cx_nonca, [root_ca_der], "reject", reason="intermediate is not a CA", hardening=True)
+
+    # wrong-curve leaf (H2/H1): leaf key is P-384 (root sig ES384) — AP2 accepts, we reject
+    leaf384_k = ec_key(0xE5, ec.SECP384R1())
+    leaf384 = make_cert("ap2-leaf-p384", "ap2-intermediate", leaf384_k.public_key(), inter_k, False)
+    cx384 = x5c_chain(JWK.from_pyca(leaf384_k), [leaf384, inter], alg="ES384")
+    assert_ap2_x5c_accepts("x5c_wrong_curve_leaf", cx384, [root_ca])
+    add_x5c("x5c_wrong_curve_leaf", "Leaf key is P-384, not P-256 (AP2 accepts ES384).",
+            cx384, [root_ca_der], "reject", reason="leaf not EC P-256", hardening=True)
 
     PAIRS_OUT.write_text(json.dumps(emit_hash_pairs(chain2), indent=2) + "\n")
     OUT.write_text(json.dumps(vectors, indent=2) + "\n")
