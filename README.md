@@ -88,26 +88,53 @@ checkPolicy(policy, {
 // → { approved: false, reason: "CODE_NOT_ALLOWED", detail: 'Code "storage" not in allowed list' }
 ```
 
-### AP2 mandate verification
+### Real AP2 mandate verification (dSD-JWT)
 
-For agents carrying [AP2](https://ap2-protocol.org/)-style mandates (Google, 60+ partners). A mandate is signed as a compact **ES256 JWS over the whole mandate** — the same mechanism AP2 uses — so verifying it both proves authenticity and hands back the trusted mandate. Then check its constraints.
+[AP2](https://ap2-protocol.org/) mandates (Google, 60+ partners) are **not** plain signed JSON — they are **dSD-JWT delegation chains**: an issuer-signed SD-JWT root plus N KB-SD-JWT hops, each hop signed by the previous hop's `cnf.jwk`, hash-chained via `sd_hash`/`issuer_jwt_hash`, ES256/P-256. The `ap2` namespace verifies the whole chain and evaluates the mandate's constraints. It is **ported byte-exact from AP2's reference SDK** (pinned commit, 65 golden vectors) and is **stricter than AP2 on every trust decision** — see [`AP2-AUDIT.md`](./AP2-AUDIT.md).
 
 ```ts
-import { signMandate, verifyMandate, checkConstraints } from "@goodmeta/agent-verifier"
+import { ap2 } from "@goodmeta/agent-verifier"
 
-// user signs the WHOLE mandate (ES256, JWK key) → a compact JWS token
-const token = await signMandate(mandate, userPrivateJwk)
+// 1. Verify the delegation chain. Pass the root issuer key (or an x5c/kid
+//    provider) and the expected audience + nonce — both REQUIRED (fail-closed).
+const tokens = ap2.splitChain(compactChain)
+const payloads = await ap2.verifyChain(tokens, rootIssuerJwk, {
+  expectedAud: "merchant",
+  expectedNonce: "nonce-1",
+})
+// signatures, cnf hop-chaining, sd_hash binding, typ rules, aud/nonce all
+// verified — throws on any failure. payloads = [open, ...intermediate, closed]
 
-// merchant verifies the signature and gets the trusted mandate back
-const { valid, mandate: verified, error } = await verifyMandate(token, userPublicJwk)
-if (!valid) throw new Error(error)
+// 2. Type the [open, closed] pair and evaluate constraints (budget, amount
+//    range, allowed payees/instruments, line-items max-flow, …).
+const chain = ap2.parsePaymentChain(payloads)
+const violations = ap2.verifyPaymentChain(chain, {
+  mandateContext: { total_amount: 0, total_uses: 0 },
+})
+if (violations.length) throw new Error(violations.join("; ")) // [] = authorized
 
-// check spending constraints on the verified mandate
-const check = checkConstraints(verified, { amount: "3000", merchantId: "merchant-1" })
-if (!check.valid) throw new Error(check.error)
+// 3. Stable receipt reference (hash of the final SD-JWT in the chain).
+const reference = ap2.receiptReference(compactChain)
 ```
 
-Because the entire mandate is under the signature, scope fields (allowlist, categories, validity window) can't be altered without breaking it.
+For certificate-anchored roots, build a fail-closed `x5c`/`kid` provider (mandatory trusted roots, validity window, `CA:TRUE`, leaf P-256, anchor-to-root):
+
+```ts
+const provider = ap2.x5cOrKidProvider({ trustedRoots /* X509Certificate[] */ })
+const payloads = await ap2.verifyChain(tokens, provider, { expectedAud, expectedNonce })
+```
+
+### Receipts (ES256 JWS)
+
+A *Mandate Receipt* in AP2 is a Verifier-signed JWT (`iss`/`result`/`reference`). `signReceipt`/`verifyReceipt` are a plain compact ES256 JWS over the whole payload — the receipt mechanism. (They also back the simpler legacy `IntentMandate` self-hosted flow; see `examples/single-merchant.ts`.)
+
+```ts
+import { signReceipt, verifyReceipt } from "@goodmeta/agent-verifier"
+
+const token = await signReceipt(receipt, verifierPrivateJwk)
+const { valid, payload, error } = await verifyReceipt(token, verifierPublicJwk)
+if (!valid) throw new Error(error)
+```
 
 ### Hosted verifier
 
@@ -148,13 +175,26 @@ if (approved) {
 | --- | --- |
 | `checkPolicy(policy, request, currentSpend?)` | Check a spending request against policy constraints |
 
-### AP2 mandates (ES256 JWS — matches AP2)
+### AP2 dSD-JWT verifier (`ap2.*`)
 
 | Function | Description |
 | --- | --- |
-| `signMandate(mandate, privateJwk)` | Sign the whole mandate as a compact ES256 JWS (returns a token) |
-| `verifyMandate(token, publicJwk)` | Verify the JWS signature; returns the trusted mandate payload |
-| `checkConstraints(mandate, tx)` | Check budget, merchant, category, and temporal constraints |
+| `ap2.splitChain(compact)` | Split a `~~`-joined dSD-JWT chain into parsed tokens |
+| `ap2.verifyChain(tokens, keyOrProvider, opts)` | Verify the full delegation chain (signatures, cnf hop-chaining, binding, typ, terminal aud/nonce); returns per-hop payloads, throws on failure |
+| `ap2.x5cOrKidProvider(opts)` | Build a fail-closed root-key provider from `x5c` certs or a `kid` lookup |
+| `ap2.parsePaymentChain` / `ap2.verifyPaymentChain` | Type the `[open, closed]` payment pair; evaluate constraints + linkage (`[]` = ok) |
+| `ap2.parseCheckoutChain` / `ap2.verifyCheckoutChain` | Same for checkout; self-computes `checkout_hash` from the embedded `checkout_jwt` |
+| `ap2.checkPaymentConstraints` / `ap2.checkCheckoutConstraints` | Evaluate the 8 payment / 2 checkout constraints directly |
+| `ap2.receiptReference(compact)` | Stable receipt reference (`sd_hash` of the final SD-JWT) |
+| `ap2.*Schema` / types | zod schemas + types for the snake_case AP2 mandates |
+
+### Receipts (ES256 JWS)
+
+| Function | Description |
+| --- | --- |
+| `signReceipt(payload, privateJwk)` | Sign a payload as a compact ES256 JWS (AP2 receipt format) |
+| `verifyReceipt(token, publicJwk)` | Verify the JWS signature; returns the trusted payload |
+| `checkConstraints(mandate, tx)` | (Legacy) check budget/merchant/category/temporal constraints on an `IntentMandate` |
 
 ### Hosted verifier client
 

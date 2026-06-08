@@ -1,15 +1,16 @@
 /**
- * Single-Merchant Verification (Self-Hosted)
+ * Single-Merchant Verification (Self-Hosted, legacy policy model)
  *
- * Sign a mandate as an ES256 JWS (the mechanism AP2 uses), verify it, and check
- * its constraints — all locally, no hosted service. Good for single-merchant
- * setups where cross-merchant budget tracking isn't needed.
+ * Sign a payload as an ES256 JWS (AP2's *receipt* format), verify it, and check
+ * its constraints — all locally, no hosted service. This uses the simple
+ * legacy `IntentMandate` model; for REAL AP2 mandate verification (dSD-JWT
+ * delegation chains), use the `ap2` namespace (`ap2.verifyChain`, …).
  *
  * Run: npm run demo
  */
 
 import { generateKeyPair, exportJWK } from "jose";
-import { signMandate, verifyMandate, checkConstraints, type IntentMandate } from "../src/index.js";
+import { signReceipt, verifyReceipt, checkConstraints, type IntentMandate } from "../src/index.js";
 
 async function main() {
   console.log("\n=== Single-Merchant Verification (ES256 JWT) ===\n");
@@ -33,16 +34,16 @@ async function main() {
     budgetTotal: "10000",
     budgetSpent: "0",
   };
-  const token = await signMandate(mandate, priv);
+  const token = await signReceipt(mandate, priv);
   console.log(`Signed mandate (JWS): ${token.slice(0, 32)}...`);
 
-  // 2. Merchant verifies the signature and gets the trusted mandate back.
-  const verified = await verifyMandate<IntentMandate>(token, pub);
+  // 2. Merchant verifies the signature and gets the trusted payload back.
+  const verified = await verifyReceipt<IntentMandate>(token, pub);
   console.log(`Signature valid: ${verified.valid}`);
-  if (!verified.valid || !verified.mandate) return;
+  if (!verified.valid || !verified.payload) return;
 
   // 3. Check constraints — $22 coffee at the allowed merchant.
-  const ok = checkConstraints(verified.mandate, {
+  const ok = checkConstraints(verified.payload, {
     amount: "2200",
     merchantId: "cafe-1",
     items: [{ id: "latte", name: "Latte", quantity: 1, unitPrice: "2200", currency: "USDC", category: "coffee" }],
@@ -50,7 +51,7 @@ async function main() {
   console.log(`$22 coffee @ cafe-1: ${ok.valid ? "✅ APPROVED" : "❌ " + ok.error}`);
 
   // 4. $35 — over the per-transaction max.
-  const denied = checkConstraints(verified.mandate, {
+  const denied = checkConstraints(verified.payload, {
     amount: "3500",
     merchantId: "cafe-1",
     items: [{ id: "x", name: "Big Latte", quantity: 1, unitPrice: "3500", currency: "USDC", category: "coffee" }],

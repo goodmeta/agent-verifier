@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.5.0
+
+- **Real AP2 mandate verification — `ap2.*` namespace.** AP2 mandates are
+  **dSD-JWT delegation chains** (issuer-signed SD-JWT root + KB-SD-JWT hops,
+  `cnf.jwk` hop-chaining, `sd_hash`/`issuer_jwt_hash` binding, ES256/P-256), not
+  plain signed JSON. The new verifier walks the chain (`ap2.verifyChain`),
+  resolves disclosures, enforces binding + typ + terminal aud/nonce, anchors
+  trust via a fail-closed `x5c`/`kid` provider (`ap2.x5cOrKidProvider`), types
+  the `[open, closed]` pair (`ap2.parsePaymentChain` / `ap2.parseCheckoutChain`),
+  evaluates all 8 payment + 2 checkout constraints (incl. line-items max-flow),
+  self-computes the `checkout_hash`/`transaction_id` linkage, and computes the
+  receipt `reference`. **Ported byte-exact from AP2's reference SDK** (pinned
+  commit) and validated against **65 golden vectors**; STRICTER than AP2 on every
+  trust decision. Conformance matrix: `AP2-AUDIT.md`.
+- **Honesty:** prior versions (`< 0.5`) did **not** verify real AP2 mandates —
+  `0.2.x` used EIP-712, `0.4.0` used plain whole-payload ES256 JWS (which is
+  AP2's *receipt* format, not its *mandate* format).
+- **Renamed** `signMandate`/`verifyMandate` → `signReceipt`/`verifyReceipt`
+  (`receipt-jwt.ts`): plain ES256 JWS IS AP2's receipt format. The result field
+  is now `payload` (was `mandate`). **Breaking.** The legacy camelCase
+  `IntentMandate`/`CartMandate` + `checkConstraints` remain (hosted-API model),
+  now clearly marked legacy; new integrations use the `ap2.*` snake_case schemas.
+- No new runtime dependencies (disclosure math is a native port of AP2's Python
+  `sd_jwt` lib, not `@sd-jwt/*`). All deps stay exact-pinned.
+
 ## 0.4.0
 
 - **Mandate signing/verification now uses ES256 JWS (JWT) over the whole mandate

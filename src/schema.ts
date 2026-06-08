@@ -3,7 +3,7 @@
  *
  * The untrusted boundary is the runtime spend request — what an agent wants to
  * spend right now. Mandate *integrity* is guaranteed separately by the ES256 JWS
- * signature (see mandate-jwt.ts), so here we validate the request shapes and,
+ * signature (see receipt-jwt.ts), so here we validate the request shapes and,
  * above all, the money field.
  *
  * `Cents` is the shared money validator: a positive, safe-integer cent value,

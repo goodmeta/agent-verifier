@@ -1,8 +1,8 @@
 /**
  * Constraint checking for a verified mandate.
  *
- * Signature verification lives in mandate-jwt.ts (ES256 JWS — the mechanism AP2
- * uses). Once a mandate's signature is verified there, the WHOLE payload is
+ * Signature verification lives in receipt-jwt.ts (ES256 JWS — AP2's receipt
+ * format). Once a mandate's signature is verified there, the WHOLE payload is
  * trusted, and these checks enforce the spending constraints it carries. There
  * is no "signed subset vs enforced superset" gap: every field was under the JWS.
  */
