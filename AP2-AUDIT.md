@@ -5,9 +5,10 @@ real-AP2 dSD-JWT mandate verifier (v0.5, in progress). Every requirement is pinn
 (commit-hash) version of the canonical AP2 documents and reference implementation, and mapped to
 the exact code + test/golden-vector that exercises it, with an honest status.
 
-This is a **living document**: it goes green as build phases P4–P6 land. Today (P0–P3 complete) the
-full dSD-JWT chain-mechanics core is covered and validated against 17 golden vectors; mandate semantics,
-constraints, linkage, trust-anchoring, and receipts are explicitly marked pending against their phase.
+This is a **living document**: it goes green as build phases P5–P6 land. Today (P0–P4 complete) the
+full dSD-JWT chain-mechanics core **and x5c/kid trust anchoring** are covered and validated against 23
+golden vectors; mandate semantics, constraints, linkage, and receipts are explicitly marked pending
+against their phase.
 
 ---
 
@@ -89,12 +90,12 @@ The only L1 negative still deferred is **disclosure-reorder** (a reordered ≥2-
 | # | Hardening (PLAN §5) | What AP2 does | Our stricter behavior | Status |
 |---|---|---|---|---|
 | H1 | **Alg pin** | Defers `alg` to upstream lib; examples show ES256 but no exclusivity stated (SPEC-2, IMPL-32/40) | Pin **ES256** (`{algorithms:['ES256']}`) in `sd-jwt.ts` `verifyEs256` on **every** signature (root + every hop); reject none/HS256/RS256 | 🔒 ✅ (`alg_swap_none_root` + `alg_swap_hs256_hop` ⇒ reject) |
-| H2 | **x5c fail-closed** | x5c chain check **fails open** when no trusted roots configured | `trustedRoots` mandatory; per-cert validity, CA+pathLen, keyUsage, name chaining, leaf curve = P-256 | 🔒 ⏳P4 |
+| H2 | **x5c fail-closed** | x5c chain check **fails open** when no trusted roots configured | `keys.ts`: `trustedRoots` mandatory; per-cert validity, `CA:TRUE`, name chaining (`checkIssued`), signature, leaf = P-256, anchor-to-root. `keyUsage`/`pathLen` NOT enforced — node `X509Certificate` exposes only EXTENDED key usage (documented limitation, refinement pending) | 🔒 ✅ (`keys.test.ts`: fail-open/validity/CA/curve hardenings reject; all AP2-confirmed accepts) |
 | H3 | **Single, signed cnf** | First-match across 3 tiers; a disclosure-injected `cnf` can win | `sd-jwt.ts` `cnfJwk`: reject if >1 delegate item carries a `cnf` (`chain.test.ts` H3). AP2 first-matches, so no AP2-confirmed vector — guard asserted directly. Signed-`_sd` digest-binding refinement ⏳ | 🔒 ✅ (guard) / refinement ⏳ |
 | H4 | **aud+nonce required** | Optional; enforced terminal-only if caller passes them | `chain.ts`: `expectedAud`+`expectedNonce` **required** for any KB-bearing chain (fail closed if absent) | 🔒 ✅ (`chain.test.ts` H4) |
 | H5 | **DoS caps** | No caps; O(disclosures×digests) rehash | `chain.ts` `enforceCaps` before crypto (depth ≤8, token ≤64KB, disclosures ≤64/token); digest→value `Map` in unpack | 🔒 ✅ (`chain.test.ts` H5 depth; byte/disclosure caps implemented) |
 | H6 | **Self-computed linkage** | `transaction_id`/`checkout_hash` taken caller-supplied | Self-compute from actual bytes; mandatory match; no constraint eval without the tie | 🔒 ⏳P5 |
-| H7 | **x5c anchored-not-present** | trusted root = "last cert signed by a configured root" | Match AP2 here (wire-compat): anchor by signature, root need not be in the chain | (parity, P4) ⏳P4 |
+| H7 | **x5c anchored-not-present** | trusted root = "last cert signed by a configured root" | `keys.ts` matches AP2 (base64url decode, anchor by signature, root NOT in chain) — wire compat | ✅ (`valid_x5c` accepts, `x5c_untrusted_root` rejects) |
 
 ## 6. Layer 2 — AP2 mandate semantics (on top of the chain)
 
@@ -143,7 +144,7 @@ engine is a **different, non-AP2** model and is quarantined — it does not sati
 
 | # | Requirement | Spec refs | Our handling | Test / vector | Status |
 |---|---|---|---|---|---|
-| L5-1 | Root signer trust: User-Credential issuer (`kid`/`iss`) **or** Trusted Agent Provider key; verifier trusts the anchor | SPEC-23; AUTH-12/13 | `keys.ts` x5c/kid provider; key supplied out-of-band (never header-`jwk`-trusted) | kid-lookup + x5c vectors | ⏳P4 / 🔒(H2) |
+| L5-1 | Root signer trust: User-Credential issuer (`kid`/`iss`) **or** Trusted Agent Provider key; verifier trusts the anchor | SPEC-23; AUTH-12/13 | `keys.ts` `x5cOrKidProvider`; key supplied out-of-band (never header-`jwk`-trusted) | `keys.test.ts`: `valid_x5c` + kid-path resolve; `x5c_untrusted_root` + unknown-kid reject | ✅ / 🔒(H2) |
 | L5-2 | EC **P-256** keys for `cnf.jwk` / signing (only curve shown) | SPEC-46; AUTH-3 | `jwk.ts` strict `kty:EC, crv:P-256, x/y 43-char, no extra members` | `jwk.test.ts` accept real / reject curve/kty/x/smuggle | ✅ |
 | L5-3 | ES256 throughout (only alg shown; not locked exclusive by spec) | SPEC-2; AUTH-8; IMPL-32/40 | We pin ES256 (H1) — stricter than AP2's silence | root ✅ / hops ⏳P3 | 🔒 root ✅ |
 | L5-4 | Validation/processing MUST be deterministic code (LLMs/agents are attackers) | SPEC-24; AUTH-20; IMPL-13/39 | The entire verifier is deterministic TS (no model in the verify path) | architectural — whole library | ✅ |
@@ -164,30 +165,32 @@ engine is a **different, non-AP2** model and is quarantined — it does not sati
 
 ---
 
-## 11. Coverage summary (as of `ff51904`, P0–P3 complete)
+## 11. Coverage summary (as of `a205d9b`, P0–P4 complete)
 
 | Layer | Total reqs | ✅ COVERED | 🔒 hardened (now) | ⏳ pending (phase) | 📋/⛔ |
 |---|---|---|---|---|---|
 | L1 chain mechanics | 16 | 16 (L1-1…L1-16) | H1 root+hops | disclosure-reorder vector (see L1 note) | — |
-| L1′ hardenings | 7 | — | H1 ✅, H3 ✅(guard), H4 ✅, H5 ✅ | H2 →P4, H6 →P5, H7 →P4; H3 signed-`_sd` refinement | — |
+| L1′ hardenings | 7 | — | H1 ✅, H2 ✅, H3 ✅(guard), H4 ✅, H5 ✅, H7 ✅ | H6 →P5; H2 keyUsage/pathLen + H3 signed-`_sd` refinements | — |
 | L2 mandate semantics | 7 | — | — | 7 → P5 | — |
 | L3 constraints | 11 | — | H6 | 11 → P5 | budget total 📋 |
 | L4 linkage & receipts | 6 | hash primitives | H6 | wrappers → P5 | L4-6 📋/⛔ |
-| L5 trust & alg | 4 | 2 (L5-2, L5-4) | H1 | x5c → P4 (H2) | — |
+| L5 trust & alg | 4 | 3 (L5-1, L5-2, L5-4) | H1, H2 | — | — |
 | O out-of-scope | 9 | — | — | — | 9 |
 
-**Done (P0–P3 complete):** canonical chain split/parse; ASCII binding-hash math; strict EC-P256 JWK; full
+**Done (P0–P4 complete):** canonical chain split/parse; ASCII binding-hash math; strict EC-P256 JWK; full
 disclosure resolution (standard unpack + delegate-item inline + CMWallet); root **and hop** ES256
 signature verify; full chain walk with `cnf` hop-chaining, exactly-one `sd_hash`/`issuer_jwt_hash` binding
-(both modes), terminal aud/nonce, single-`cnf` guard (H3), aud+nonce-required (H4), DoS caps (H5).
-Validated by **17 golden vectors**: 3 valid (2-hop, 3-hop, issuer_jwt_hash) byte-exact vs AP2; 14 reject
-(6 base + 8 hand-built negatives: wrong-typ, both/neither binding, terminal-with-cnf,
-intermediate-without-cnf, expired, alg-swap none/HS256) — every reject AP2-confirmed at mint and
-**reason-pinned** in the TS test so each fails for its intended check. (67 tests total.)
+(both modes), terminal aud/nonce, single-`cnf` guard (H3), aud+nonce-required (H4), DoS caps (H5);
+**x5c/kid trust anchoring fail-closed** (H2/H7) — mandatory trusted roots, validity, CA:TRUE, name
+chaining, leaf P-256, anchor-to-root. Validated by **23 golden vectors**: 4 valid (2-hop, 3-hop,
+issuer_jwt_hash, x5c) byte-exact vs AP2; 19 reject (6 base + 8 chain negatives + 5 x5c, of which 4 are
+AP2-confirmed *accepts* we reject as stricter hardenings) — every faithfulness-reject AP2-confirmed at
+mint, every reject **reason-pinned** in the TS test. (75 tests total.)
 
-**Next to green:** P4 (x5c fail-closed, H2/H7) and P5 (vct exact-match, open↔closed unchanged, 8+2
-constraints incl. line-items max-flow, linkage self-compute H6, receipt-reference). Deferred minor
-items: disclosure-reorder vector (L1 note); H3 signed-`_sd` digest-binding refinement.
+**Next to green:** P5 (vct exact-match, open↔closed unchanged, 8+2 constraints incl. line-items max-flow,
+linkage self-compute H6, receipt-reference); then P6 review + publish. Deferred minor items:
+disclosure-reorder vector (L1 note); H2 basic-keyUsage/pathLen (node `X509Certificate` limitation);
+H3 signed-`_sd` digest-binding refinement.
 
 ## 12. Re-audit / reproduce
 
