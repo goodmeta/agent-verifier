@@ -5,10 +5,10 @@ real-AP2 dSD-JWT mandate verifier (v0.5, in progress). Every requirement is pinn
 (commit-hash) version of the canonical AP2 documents and reference implementation, and mapped to
 the exact code + test/golden-vector that exercises it, with an honest status.
 
-This is a **living document**: it goes green as build phases P5–P6 land. Today (P0–P4 complete) the
-full dSD-JWT chain-mechanics core **and x5c/kid trust anchoring** are covered and validated against 23
-golden vectors; mandate semantics, constraints, linkage, and receipts are explicitly marked pending
-against their phase.
+This is a **living document**: only the final review/publish phase (P6) remains. Today (P0–P5 complete)
+the full dSD-JWT chain-mechanics core, x5c/kid trust anchoring, mandate semantics, all 10 constraint
+evaluators (incl. line-items max-flow), linkage, and the receipt reference are covered and validated
+against 65 golden vectors. Receipt *signing* is out of scope for the verify-only library (issuer side).
 
 ---
 
@@ -94,20 +94,20 @@ The only L1 negative still deferred is **disclosure-reorder** (a reordered ≥2-
 | H3 | **Single, signed cnf** | First-match across 3 tiers; a disclosure-injected `cnf` can win | `sd-jwt.ts` `cnfJwk`: reject if >1 delegate item carries a `cnf` (`chain.test.ts` H3). AP2 first-matches, so no AP2-confirmed vector — guard asserted directly. Signed-`_sd` digest-binding refinement ⏳ | 🔒 ✅ (guard) / refinement ⏳ |
 | H4 | **aud+nonce required** | Optional; enforced terminal-only if caller passes them | `chain.ts`: `expectedAud`+`expectedNonce` **required** for any KB-bearing chain (fail closed if absent) | 🔒 ✅ (`chain.test.ts` H4) |
 | H5 | **DoS caps** | No caps; O(disclosures×digests) rehash | `chain.ts` `enforceCaps` before crypto (depth ≤8, token ≤64KB, disclosures ≤64/token); digest→value `Map` in unpack | 🔒 ✅ (`chain.test.ts` H5 depth; byte/disclosure caps implemented) |
-| H6 | **Self-computed linkage** | `transaction_id`/`checkout_hash` taken caller-supplied | Self-compute from actual bytes; mandatory match; no constraint eval without the tie | 🔒 ⏳P5 |
+| H6 | **Self-computed linkage** | `transaction_id`/`checkout_hash` taken caller-supplied | `chains.ts` self-computes `checkout_hash` from the embedded `checkout_jwt`, mandatory match, no constraint eval without the tie | 🔒 ✅ (`chains.test.ts` `cc_tampered_hash` rejects where AP2 accepts) |
 | H7 | **x5c anchored-not-present** | trusted root = "last cert signed by a configured root" | `keys.ts` matches AP2 (base64url decode, anchor by signature, root NOT in chain) — wire compat | ✅ (`valid_x5c` accepts, `x5c_untrusted_root` rejects) |
 
 ## 6. Layer 2 — AP2 mandate semantics (on top of the chain)
 
 | # | Requirement | Spec refs | Our handling | Test / vector | Status |
 |---|---|---|---|---|---|
-| L2-1 | Open Mandate MUST carry the agent key as a `cnf` claim (it isn't yet transaction-bound) | SPEC-10; AUTH-2; SEC-04; PAY-16; IMPL-12 | `chain.ts` cnf resolution (L1-13) + `types.ts` (cnf required-when-open) | vector valid_payment_2hop (root has cnf); open-without-cnf reject | ⏳P3/P5 |
-| L2-2 | `vct` is REQUIRED and identifies the mandate type | AUTH-1; SPEC-17; IMPL-34 | `types.ts` zod (vct required) | types unit tests | ⏳P5 |
-| L2-3 | **Exact** `vct` match incl. version suffix: `mandate.payment.1` / `mandate.payment.open.1` / `mandate.checkout.1` / `mandate.checkout.open.1` | SPEC-14/15/16; PAY-01/02/03; CHK-01/02; IMPL-08/09/10 | `types.ts` vct literals (no prefix/loose match) | vct-mismatch reject vector | ⏳P5 |
-| L2-4 | Verify closed Mandate Content leaves open Mandate claim values **unchanged** (step 2) | SPEC-38; AUTH-14; IMPL-16; PAY-19 | `payment-chain.ts`/`checkout-chain.ts` open↔closed diff | open-altered-by-closed reject vector | ⏳P5 |
-| L2-5 | An open mandate need not have all closed-type required fields, but the closed one MUST | SPEC-41 | `types.ts` (open vs closed schemas) | types unit tests | ⏳P5 |
-| L2-6 | Closed Payment Mandate fields: `vct`,`transaction_id`,`payee{id,name,website}`,`payment_amount{amount:int,currency}`,`payment_instrument{id,type,description}` | SPEC-19; PAY-04..08 | `types.ts` payment schema | types unit tests vs vector payload | ⏳P5 |
-| L2-7 | Closed Checkout Mandate fields: `vct`,`checkout_hash`,`checkout_jwt` (merchant-signed; payload out of AP2 scope) | SPEC-18; CHK-05/07 | `types.ts` checkout schema | checkout vector | ⏳P5 |
+| L2-1 | Open Mandate MUST carry the agent key as a `cnf` claim (it isn't yet transaction-bound) | SPEC-10; AUTH-2; SEC-04; PAY-16; IMPL-12 | `sd-jwt.ts` `cnfJwk` (chain requires it) + `types.ts` cnf | `chain.test.ts` valid (root has cnf) + `intermediate_without_cnf` ⇒ reject | ✅ |
+| L2-2 | `vct` is REQUIRED and identifies the mandate type | AUTH-1; SPEC-17; IMPL-34 | `types.ts` zod (vct literal required) | parsing fails without `vct` | ✅ |
+| L2-3 | **Exact** `vct` match incl. version suffix: `mandate.payment.1` / `mandate.payment.open.1` / `mandate.checkout.1` / `mandate.checkout.open.1` | SPEC-14/15/16; PAY-01/02/03; CHK-01/02; IMPL-08/09/10 | `types.ts` vct literals (no prefix/loose match) | `constraints.test.ts` wrong-`vct`-suffix ⇒ reject | ✅ |
+| L2-4 | Verify closed Mandate Content leaves open Mandate claim values **unchanged** (step 2) | SPEC-38; AUTH-14; IMPL-16; PAY-19 | `constraints.ts` `checkPresetPaymentClaims` | `constraints.test.ts` `preset_payee_mismatch` / `preset_amount_mismatch` vs AP2 | ✅ |
+| L2-5 | An open mandate need not have all closed-type required fields, but the closed one MUST | SPEC-41 | `types.ts` (open optional preset fields; closed required) | constraint vectors parse open+closed | ✅ |
+| L2-6 | Closed Payment Mandate fields: `vct`,`transaction_id`,`payee{id,name,website}`,`payment_amount{amount:int,currency}`,`payment_instrument{id,type,description}` | SPEC-19; PAY-04..08 | `types.ts` `PaymentMandateSchema` | 24 constraint vectors parse AP2-dumped payloads | ✅ |
+| L2-7 | Closed Checkout Mandate fields: `vct`,`checkout_hash`,`checkout_jwt` (merchant-signed; payload out of AP2 scope) | SPEC-18; CHK-05/07 | `types.ts` `CheckoutMandateSchema` | `chains.test.ts` checkout-chain vectors | ✅ |
 
 ## 7. Layer 3 — Constraints (closed-world; unknown ⇒ FAIL)
 
@@ -117,27 +117,32 @@ engine is a **different, non-AP2** model and is quarantined — it does not sati
 
 | # | Constraint / rule | Spec refs | Our handling (`constraints.ts`, P5) | Test / vector | Status |
 |---|---|---|---|---|---|
-| L3-0 | **Unknown constraint type ⇒ evaluation fails** (no silent skip) | AUTH-15; SPEC-39; IMPL-17/37 | `constraints.ts` default-deny dispatch | unknown-constraint reject vector | ⏳P5 |
-| L3-1 | `payment.budget`: requested + Σ prior-closed ≤ `max`; accumulate after approval (stateful) | SPEC-26; PAY-25; IMPL-23 | evaluator + `MandateContext{totalAmount}`; cross-presentation total is 📋 caller | budget vectors | ⏳P5 / 📋 |
-| L3-2 | `payment.amount_range`: amount within [`min`,`max`]; `currency` matches | SPEC-27; PAY-24; IMPL-27 | evaluator (major-unit float ⇒ `trunc(max*100)` cents) | amount-range vectors | ⏳P5 |
-| L3-3 | `payment.agent_recurrence`: lifetime `total_uses ≥ max_occurrences`; requires AmountRange+Budget present | SPEC-28; PAY-26 | evaluator (lifetime-only; frequency windowing unused, per SDK) | recurrence vectors | ⏳P5 |
-| L3-4 | `payment.allowed_payees`: `payee` ∈ `allowed` (id-first, else name+website) | SPEC-29; PAY-21; IMPL-24 | `merchant_matches` evaluator | payee vectors | ⏳P5 |
-| L3-5 | `payment.allowed_payment_instruments`: `payment_instrument` ∈ `allowed` | SPEC-30; PAY-22; IMPL-25 | deep-equality evaluator | instrument vectors | ⏳P5 |
-| L3-6 | `payment.allowed_pisps`: facilitating PISP ∈ `allowed` (legal/brand/domain) | SPEC-31; PAY-23; IMPL-26 | evaluator | pisp vectors | ⏳P5 |
-| L3-7 | `payment.reference`: closed checkout's delegate chain contains an open Checkout Mandate with matching hash; algo = `_sd_alg`/`sha-256` | SPEC-32; PAY-27/28; IMPL-22/30 | self-computed `openCheckoutHash` vs `conditional_transaction_id` (H6) | reference vectors | ⏳P5 / 🔒 |
-| L3-8 | `payment.execution_date`: within [`not_before`,`not_after`] (ISO 8601) | SPEC-33; PAY-29; IMPL-28 | date evaluator (NaN ⇒ reject, no fail-open) | execution-date vectors | ⏳P5 |
-| L3-9 | `checkout.allowed_merchants`: merchant ∈ **revealed** elements of `allowed`; no revealed ⇒ invalid | SPEC-36; CHK-12; IMPL-29 | evaluator over revealed disclosures | merchant vectors | ⏳P5 |
-| L3-10 | `checkout.line_items`: bipartite **max-flow** match; each item used once; flow == both totals | SPEC-37; CHK-14/15 | `constraints.ts` max-flow (Dinic/Edmonds-Karp port of `max_flow_helper.py`) | line-items vectors (incl. wildcard, quantity) | ⏳P5 |
+**All L3 evaluators return violation strings that match AP2 byte-for-byte** (24 payment + 11 checkout
+vectors, validated against AP2's own `check_payment_constraints` / `check_checkout_constraints`); the
+only two messages not byte-matched embed a Python object `repr` (pisp, pre-set amount), where the
+violation COUNT is asserted instead.
+
+| L3-0 | **Unknown constraint type ⇒ evaluation fails** (no silent skip) | AUTH-15; SPEC-39; IMPL-17/37 | `constraints.ts` default-deny dispatch (known union → else violation) | `constraints.test.ts` unknown-type ⇒ violation | ✅ |
+| L3-1 | `payment.budget`: requested + Σ prior-closed ≤ `max`; accumulate after approval (stateful) | SPEC-26; PAY-25; IMPL-23 | evaluator + `MandateContext{total_amount}`; cross-presentation total is 📋 caller | `budget_pass`/`budget_over`/`budget_currency` vs AP2 | ✅ / 📋 |
+| L3-2 | `payment.amount_range`: amount within [`min`,`max`]; `currency` matches | SPEC-27; PAY-24; IMPL-27 | evaluator | `amount_range_*` (4) vs AP2 | ✅ |
+| L3-3 | `payment.agent_recurrence`: lifetime `total_uses ≥ max_occurrences`; requires AmountRange+Budget present | SPEC-28; PAY-26 | evaluator (lifetime-only; frequency windowing unused, per SDK) | `recurrence_pass`/`_exceeded`/`_requires_amount_budget` vs AP2 | ✅ |
+| L3-4 | `payment.allowed_payees`: `payee` ∈ `allowed` (id-first, else name+website) | SPEC-29; PAY-21; IMPL-24 | `merchantMatches` evaluator | `allowed_payees_pass`/`_fail` vs AP2 | ✅ |
+| L3-5 | `payment.allowed_payment_instruments`: `payment_instrument` ∈ `allowed` | SPEC-30; PAY-22; IMPL-25 | id-equality evaluator | `allowed_instruments_pass`/`_fail` vs AP2 | ✅ |
+| L3-6 | `payment.allowed_pisps`: facilitating PISP ∈ `allowed` (legal/brand/domain) | SPEC-31; PAY-23; IMPL-26 | evaluator | `allowed_pisps_pass`/`_fail` (count) vs AP2 | ✅ |
+| L3-7 | `payment.reference`: closed checkout's delegate chain contains an open Checkout Mandate with matching hash; algo = `_sd_alg`/`sha-256` | SPEC-32; PAY-27/28; IMPL-22/30 | `openCheckoutHash` vs `conditional_transaction_id` (self-computed, H6) | `reference_pass`/`_mismatch`/`_missing_hash` vs AP2 | ✅ / 🔒 |
+| L3-8 | `payment.execution_date`: within [`not_before`,`not_after`] (ISO 8601) | SPEC-33; PAY-29; IMPL-28 | date evaluator (lexical ISO compare) | `execution_date_*` (3) vs AP2 | ✅ |
+| L3-9 | `checkout.allowed_merchants`: merchant ∈ `allowed`; missing merchant ⇒ invalid | SPEC-36; CHK-12; IMPL-29 | evaluator | `merchants_pass`/`_fail`/`_missing` vs AP2 | ✅ |
+| L3-10 | `checkout.line_items`: bipartite **max-flow** match; each item used once; flow == both totals | SPEC-37; CHK-14/15 | `max-flow.ts` greedy degree-1 + **Dinic** (line-for-line port of `max_flow_helper.py`) | `line_items_*` (8: simple, degree-1, not-acceptable, oversupply, wildcard, complex pass/fail, empty) + a 3-req split stress | ✅ |
 
 ## 8. Layer 4 — Linkage & receipts
 
 | # | Requirement | Spec refs | Our handling | Test / vector | Status |
 |---|---|---|---|---|---|
-| L4-1 | `checkout_hash` = base64url hash of `checkout_jwt`; algo = `_sd_alg`/`sha-256`; **independently computed**, not trusted | SPEC-4/5/9; AUTH-22; CHK-05/06; SEC-06; IMPL-21/31 | hash primitive ✅ (`hash.ts`); self-compute wrapper (H6) in `checkout-chain.ts` | checkout linkage vector | hash ✅ / linkage ⏳P5 🔒 |
-| L4-2 | `transaction_id` binds the Payment Mandate to its Checkout (= hash of checkout JWT) | SPEC-19; PAY-08/09; SEC-02/08 | `payment-chain.ts` self-computed linkage (H6) | linkage vector | ⏳P5 🔒 |
-| L4-3 | Non-deterministic signature for the checkout/payment (ECDSA, **not** Ed25519) so the hash resists rainbow-tabling | SPEC-3; PAY-10; SEC-22; IMPL-11 | ES256 pin (= ECDSA) on every sig (H1) | covered transitively by H1 | root ✅ / hops ⏳P3 🔒 |
-| L4-4 | Mandate Receipt `reference` = base64url hash of the **final** SD-JWT in the chain, computed like `sd_hash` (`_sd_alg`/`sha-256`) | SPEC-6; AUTH-17; CHK-27; IMPL-18 | hash primitive ✅; `get_closed_mandate_jwt`-style selection + helper | receipt-reference vector | hash ✅ / helper ⏳P5 |
-| L4-5 | Dispute: Checkout/Payment Receipt `reference` MUST match the hash of the closed mandate; recompute from bytes | SPEC-7/8/43; IMPL-19/20; PAY-33 | receipt-reference helper (recompute, never trust) | dispute-reference vector | ⏳P5 📋 |
+| L4-1 | `checkout_hash` = base64url hash of `checkout_jwt`; algo = `_sd_alg`/`sha-256`; **independently computed**, not trusted | SPEC-4/5/9; AUTH-22; CHK-05/06; SEC-06; IMPL-21/31 | `chains.ts` `verifyCheckoutChain` self-computes `computeValueHash(checkout_jwt)` and requires it to match (H6) | `chains.test.ts` `cc_tampered_hash` ⇒ reject (AP2 accepts) | ✅ / 🔒 |
+| L4-2 | `transaction_id` binds the Payment Mandate to its Checkout (= hash of checkout JWT) | SPEC-19; PAY-08/09; SEC-02/08 | `chains.ts` `verifyPaymentChain` `expectedTransactionId` (the verified checkout hash) — mandatory match (H6) | `chains.test.ts` transaction_id mismatch ⇒ violation | ✅ / 🔒 |
+| L4-3 | Non-deterministic signature for the checkout/payment (ECDSA, **not** Ed25519) so the hash resists rainbow-tabling | SPEC-3; PAY-10; SEC-22; IMPL-11 | ES256 pin (= ECDSA) on every sig (H1) | `alg_swap_*` reject vectors | ✅ / 🔒 |
+| L4-4 | Mandate Receipt `reference` = base64url hash of the **final** SD-JWT in the chain, computed like `sd_hash` (`_sd_alg`/`sha-256`) | SPEC-6; AUTH-17; CHK-27; IMPL-18 | `chains.ts` `receiptReference` = `computeSdHash` of the final segment | `chains.test.ts` byte-exact vs AP2 for 4 chains | ✅ |
+| L4-5 | Dispute: Checkout/Payment Receipt `reference` MUST match the hash of the closed mandate; recompute from bytes | SPEC-7/8/43; IMPL-19/20; PAY-33 | same `receiptReference` helper (recompute, never trust the claim) | covered by L4-4 (same mechanism) | ✅ / 📋 |
 | L4-6 | Mandate Receipt is a Verifier-signed JWT (`iss`=verifier, `result`∈{success,error}, `reference`, opt `error*`) | SPEC-20; AUTH-18; IMPL-38 | Receipt **signing** is the hosted/pro side; OSS verify-lib provides the reference helper only | — | 📋 / ⛔ (issuing) |
 
 ## 9. Layer 5 — Trust anchoring & algorithms
@@ -165,30 +170,34 @@ engine is a **different, non-AP2** model and is quarantined — it does not sati
 
 ---
 
-## 11. Coverage summary (as of `a205d9b`, P0–P4 complete)
+## 11. Coverage summary (as of `c0b6a9b`, P0–P5 complete)
 
-| Layer | Total reqs | ✅ COVERED | 🔒 hardened (now) | ⏳ pending (phase) | 📋/⛔ |
+| Layer | Total reqs | ✅ COVERED | 🔒 hardened (now) | ⏳ pending | 📋/⛔ |
 |---|---|---|---|---|---|
-| L1 chain mechanics | 16 | 16 (L1-1…L1-16) | H1 root+hops | disclosure-reorder vector (see L1 note) | — |
-| L1′ hardenings | 7 | — | H1 ✅, H2 ✅, H3 ✅(guard), H4 ✅, H5 ✅, H7 ✅ | H6 →P5; H2 keyUsage/pathLen + H3 signed-`_sd` refinements | — |
-| L2 mandate semantics | 7 | — | — | 7 → P5 | — |
-| L3 constraints | 11 | — | H6 | 11 → P5 | budget total 📋 |
-| L4 linkage & receipts | 6 | hash primitives | H6 | wrappers → P5 | L4-6 📋/⛔ |
+| L1 chain mechanics | 16 | 16 (L1-1…L1-16) | H1 root+hops | disclosure-reorder vector (L1 note) | — |
+| L1′ hardenings | 7 | — | H1–H7 ✅ (all) | H2 keyUsage/pathLen + H3 signed-`_sd` refinements | — |
+| L2 mandate semantics | 7 | 7 (L2-1…L2-7) | — | — | — |
+| L3 constraints | 11 | 11 (L3-0…L3-10) | H6 | — | budget total 📋 |
+| L4 linkage & receipts | 6 | 5 (L4-1…L4-5) | H6 | — | L4-6 📋/⛔ (receipt signing) |
 | L5 trust & alg | 4 | 3 (L5-1, L5-2, L5-4) | H1, H2 | — | — |
 | O out-of-scope | 9 | — | — | — | 9 |
 
-**Done (P0–P4 complete):** canonical chain split/parse; ASCII binding-hash math; strict EC-P256 JWK; full
-disclosure resolution (standard unpack + delegate-item inline + CMWallet); root **and hop** ES256
-signature verify; full chain walk with `cnf` hop-chaining, exactly-one `sd_hash`/`issuer_jwt_hash` binding
-(both modes), terminal aud/nonce, single-`cnf` guard (H3), aud+nonce-required (H4), DoS caps (H5);
-**x5c/kid trust anchoring fail-closed** (H2/H7) — mandatory trusted roots, validity, CA:TRUE, name
-chaining, leaf P-256, anchor-to-root. Validated by **23 golden vectors**: 4 valid (2-hop, 3-hop,
-issuer_jwt_hash, x5c) byte-exact vs AP2; 19 reject (6 base + 8 chain negatives + 5 x5c, of which 4 are
-AP2-confirmed *accepts* we reject as stricter hardenings) — every faithfulness-reject AP2-confirmed at
-mint, every reject **reason-pinned** in the TS test. (75 tests total.)
+**Done (P0–P5 complete):** canonical chain split/parse; ASCII binding-hash math; strict EC-P256 JWK;
+full disclosure resolution (standard unpack + delegate-item inline + CMWallet); root + hop ES256 verify;
+full chain walk (cnf hop-chaining, exactly-one binding both modes, terminal aud/nonce, single-cnf H3,
+aud+nonce-required H4, DoS caps H5); x5c/kid trust anchoring fail-closed (H2/H7); typed mandates with
+exact `vct`; open→closed pre-set-claim checks; **all 10 constraint evaluators** (8 payment + 2 checkout
+incl. line-items Dinic max-flow) with **byte-exact violation strings vs AP2**; unknown-constraint
+fail-closed; self-computed `checkout_hash`/`transaction_id` linkage (H6); receipt reference (`sd_hash` of
+the final segment).
 
-**Next to green:** P5 (vct exact-match, open↔closed unchanged, 8+2 constraints incl. line-items max-flow,
-linkage self-compute H6, receipt-reference); then P6 review + publish. Deferred minor items:
+Validated by **65 golden vectors** (123 tests): 23 chain (4 valid byte-exact + 19 reject, 4 of them
+AP2-confirmed accepts we reject as stricter hardenings) + 24 payment-constraint + 11 checkout-constraint
++ 3 checkout-chain + 4 receipt-reference — every faithfulness case validated against AP2's own SDK output;
+every reject reason-pinned.
+
+**Next:** P6 — fresh adversarial review → migration/docs (rename `signMandate`→`signReceipt`, quarantine
+legacy camelCase, wire `index.ts`) → publish v0.5 + `npm deprecate "<0.5"`. Deferred minor items:
 disclosure-reorder vector (L1 note); H2 basic-keyUsage/pathLen (node `X509Certificate` limitation);
 H3 signed-`_sd` digest-binding refinement.
 
