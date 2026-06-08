@@ -41,3 +41,13 @@ export function computeIssuerJwtHash(token: ParsedToken): string {
 export function computeDisclosureDigest(disclosure: string, sdAlg: string | undefined): string {
   return hashAscii(disclosure, sdAlg);
 }
+
+/**
+ * base64url hash of an arbitrary on-wire value (ASCII), keyed off `_sd_alg`.
+ * Used for the `checkout_hash` / `transaction_id` linkage (hash of the
+ * `checkout_jwt`) and the receipt `reference`, all of which the spec defines as
+ * "calculated in the same manner as `sd_hash`" (AUTH-17 / SPEC-4).
+ */
+export function computeValueHash(value: string, sdAlg: string | undefined): string {
+  return hashAscii(value, sdAlg);
+}

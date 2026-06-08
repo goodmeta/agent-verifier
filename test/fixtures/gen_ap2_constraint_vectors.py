@@ -12,7 +12,11 @@ from __future__ import annotations
 import json
 import pathlib
 
+from ap2.sdk.checkout_mandate_chain import CheckoutMandateChain
 from ap2.sdk.constraints import MandateContext, check_checkout_constraints, check_payment_constraints
+from ap2.sdk.mandate import _canonical_chain_segment
+from ap2.sdk.sdjwt import common
+from ap2.sdk.utils import b64url_encode, compute_sha256_b64url
 from ap2.sdk.generated.open_payment_mandate import (
     AgentRecurrence, AllowedPayees, AllowedPaymentInstruments, AllowedPisps,
     AmountRange, Budget, ExecutionDate, Frequency, OpenPaymentMandate, PaymentReference)
@@ -29,8 +33,10 @@ from ap2.sdk.generated.types.payment_instrument import PaymentInstrument
 from ap2.sdk.generated.types.pisp import PISP
 from ap2.sdk.generated.types.total import Total
 
-OUT = pathlib.Path(__file__).parent / "ap2-constraint-vectors.json"
-CO_OUT = pathlib.Path(__file__).parent / "ap2-checkout-constraint-vectors.json"
+HERE = pathlib.Path(__file__).parent
+OUT = HERE / "ap2-constraint-vectors.json"
+CO_OUT = HERE / "ap2-checkout-constraint-vectors.json"
+LINK_OUT = HERE / "ap2-linkage-vectors.json"
 CNF = {"jwk": {"kty": "EC", "crv": "P-256", "x": "x", "y": "y"}}
 PISP_A = PISP(legal_name="Acme PISP Ltd", brand_name="Acme", domain_name="acme-pisp.example")
 
@@ -156,9 +162,51 @@ def main() -> None:
            checkout(items=[li("B", 3)]))
     add_co("line_items_empty_cart", open_cm([LineItems(items=[req("r1", ["A"], 1)])]), checkout(items=[]))
 
+    # ── P5c: checkout-chain (self-computed checkout_hash, H6) + receipt reference ──
+    checkout_chains: list[dict] = []
+    receipt_refs: list[dict] = []
+
+    def checkout_jwt_of(co) -> str:
+        hdr = b64url_encode(json.dumps({"alg": "ES256", "typ": "JWT"}).encode())
+        pl = b64url_encode(json.dumps(co.model_dump(mode="json", by_alias=True, exclude_none=True)).encode())
+        return f"{hdr}.{pl}.sig"
+
+    def add_checkout_chain(name, om, co, *, tamper_hash=False):
+        cjwt = checkout_jwt_of(co)
+        chash = compute_sha256_b64url(cjwt)
+        if tamper_hash:
+            chash = chash[:-1] + ("A" if chash[-1] != "A" else "B")
+        closed = {"vct": "mandate.checkout.1", "checkout_jwt": cjwt, "checkout_hash": chash}
+        open_dict = om.model_dump(mode="json", by_alias=True, exclude_none=True)
+        # AP2's CheckoutMandateChain.verify = constraints only (it does NOT
+        # self-compute checkout_hash; that is our H6 hardening).
+        ap2_violations = CheckoutMandateChain.parse([open_dict, closed]).verify(checkout_jwt=cjwt)
+        checkout_chains.append({
+            "name": name, "open": open_dict, "closed": closed,
+            "ap2Violations": ap2_violations, "tamperHash": tamper_hash,
+        })
+
+    add_checkout_chain("cc_valid", open_cm([AllowedMerchants(allowed=[SHOP]), LineItems(items=[req("r1", ["A"], 1)])]),
+                       checkout(merchant=SHOP, items=[li("A", 1)]))
+    add_checkout_chain("cc_constraint_fail", open_cm([AllowedMerchants(allowed=[Merchant(id="other", name="Other")])]),
+                       checkout(merchant=SHOP, items=[li("A", 1)]))
+    add_checkout_chain("cc_tampered_hash", open_cm([AllowedMerchants(allowed=[SHOP])]),
+                       checkout(merchant=SHOP, items=[li("A", 1)]), tamper_hash=True)
+
+    # Receipt reference = sd_hash of the final SD-JWT segment, for each valid chain.
+    for cv in json.loads((HERE / "ap2-vectors.json").read_text()):
+        if cv["expect"] != "valid":
+            continue
+        segs = cv["chain"].split("~~")
+        last = common.parse_token(_canonical_chain_segment(segs[-1], len(segs) - 1, len(segs)))
+        receipt_refs.append({"name": cv["name"], "chain": cv["chain"], "ap2Reference": common.compute_sd_hash(last)})
+
+    LINK_OUT.write_text(json.dumps({"checkoutChains": checkout_chains, "receiptReferences": receipt_refs}, indent=2) + "\n")
+
     OUT.write_text(json.dumps(vectors, indent=2) + "\n")
     CO_OUT.write_text(json.dumps(co_vectors, indent=2) + "\n")
-    print(f"wrote {len(vectors)} payment + {len(co_vectors)} checkout constraint vectors")
+    print(f"wrote {len(vectors)} payment + {len(co_vectors)} checkout constraint + "
+          f"{len(checkout_chains)} checkout-chain + {len(receipt_refs)} receipt-ref vectors")
     for v in vectors + co_vectors:
         print(f"  - {v['name']}: violations={len(v['ap2Violations'])} valid={v['valid']}")
 

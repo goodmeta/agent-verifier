@@ -148,6 +148,14 @@ export const OpenCheckoutMandateSchema = z.object({
 });
 export type OpenCheckoutMandate = z.infer<typeof OpenCheckoutMandateSchema>;
 
+/** Closed checkout mandate (mirror `generated/checkout_mandate.py`). */
+export const CheckoutMandateSchema = z.object({
+  vct: z.literal("mandate.checkout.1"),
+  checkout_jwt: z.string(),
+  checkout_hash: z.string(),
+});
+export type CheckoutMandate = z.infer<typeof CheckoutMandateSchema>;
+
 /** Minimal UCP Checkout — only the fields the constraint evaluators read
  * (`merchant`, `line_items[].item.id`, `line_items[].quantity`). `extra='allow'`
  * in AP2, so unknown keys pass through. */
