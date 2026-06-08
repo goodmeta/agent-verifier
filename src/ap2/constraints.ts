@@ -13,12 +13,16 @@
 
 import {
   KnownPaymentConstraintSchema,
+  KnownCheckoutConstraintSchema,
   type Amount,
+  type Checkout,
   type Merchant,
   type MandateContext,
+  type OpenCheckoutMandate,
   type OpenPaymentMandate,
   type PaymentMandate,
 } from "./types.js";
+import { evaluateLineItemsMaxFlow } from "./max-flow.js";
 
 type Constraint = { type: string } & Record<string, unknown>;
 
@@ -199,6 +203,45 @@ export function checkPaymentConstraints(open: OpenPaymentMandate, closed: Paymen
 
   for (const c of open.constraints) {
     violations.push(...evaluatePaymentConstraint(c as Constraint, closed, ctx));
+  }
+  return violations;
+}
+
+// ── Checkout constraints (port of the checkout half of constraints.py) ───────
+
+function allowedMerchants(c: { allowed: Merchant[] }, checkout: Checkout): string[] {
+  const merchant = checkout.merchant;
+  if (!merchant) return ["Missing merchant in checkout"];
+  if (c.allowed.some((a) => merchantMatches(a, merchant))) return [];
+  return [`Merchant ${merchant.name || ""} not in allowed list`];
+}
+
+function lineItems(c: { items: { acceptable_items: { id: string }[]; quantity: number }[] }, checkout: Checkout): string[] {
+  const checkoutItems = checkout.line_items ?? [];
+  if (checkoutItems.length === 0) return ["Empty cart does not satisfy line_items constraint"];
+  return evaluateLineItemsMaxFlow(checkoutItems, c.items);
+}
+
+function evaluateCheckoutConstraint(raw: Constraint, checkout: Checkout): string[] {
+  const parsed = KnownCheckoutConstraintSchema.safeParse(raw);
+  if (!parsed.success) {
+    return [`Unknown or malformed constraint type '${raw.type}' — treated as failing evaluation`];
+  }
+  const c = parsed.data;
+  switch (c.type) {
+    case "checkout.allowed_merchants":
+      return allowedMerchants(c, checkout);
+    case "checkout.line_items":
+      return lineItems(c, checkout);
+  }
+}
+
+/** Verify a checkout satisfies an open checkout mandate's constraints. Port of
+ * `check_checkout_constraints`. Returns [] when satisfied. */
+export function checkCheckoutConstraints(open: OpenCheckoutMandate, checkout: Checkout): string[] {
+  const violations: string[] = [];
+  for (const c of open.constraints) {
+    violations.push(...evaluateCheckoutConstraint(c as Constraint, checkout));
   }
   return violations;
 }

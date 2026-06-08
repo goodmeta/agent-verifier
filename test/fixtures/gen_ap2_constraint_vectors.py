@@ -12,21 +12,30 @@ from __future__ import annotations
 import json
 import pathlib
 
-from ap2.sdk.constraints import MandateContext, check_payment_constraints
+from ap2.sdk.constraints import MandateContext, check_checkout_constraints, check_payment_constraints
 from ap2.sdk.generated.open_payment_mandate import (
     AgentRecurrence, AllowedPayees, AllowedPaymentInstruments, AllowedPisps,
     AmountRange, Budget, ExecutionDate, Frequency, OpenPaymentMandate, PaymentReference)
+from ap2.sdk.generated.open_checkout_mandate import (
+    AllowedMerchants, Item as ReqItem, LineItemRequirements, LineItems, OpenCheckoutMandate)
 from ap2.sdk.generated.payment_mandate import PaymentMandate
 from ap2.sdk.generated.types.amount import Amount
+from ap2.sdk.generated.types.checkout import Checkout, Status
+from ap2.sdk.generated.types.item import Item
+from ap2.sdk.generated.types.line_item import LineItem
+from ap2.sdk.generated.types.link import Link
 from ap2.sdk.generated.types.merchant import Merchant
 from ap2.sdk.generated.types.payment_instrument import PaymentInstrument
 from ap2.sdk.generated.types.pisp import PISP
+from ap2.sdk.generated.types.total import Total
 
 OUT = pathlib.Path(__file__).parent / "ap2-constraint-vectors.json"
+CO_OUT = pathlib.Path(__file__).parent / "ap2-checkout-constraint-vectors.json"
 CNF = {"jwk": {"kty": "EC", "crv": "P-256", "x": "x", "y": "y"}}
 PISP_A = PISP(legal_name="Acme PISP Ltd", brand_name="Acme", domain_name="acme-pisp.example")
 
 vectors: list[dict] = []
+co_vectors: list[dict] = []
 
 
 def open_pm(constraints, **preset):
@@ -103,9 +112,54 @@ def main() -> None:
     add("preset_payee_mismatch", open_pm([], payee=Merchant(id="other", name="Other")), closed_pm())
     add("preset_amount_mismatch", open_pm([], payment_amount=Amount(amount=999, currency="USD")), closed_pm())
 
+    # ── Checkout constraints ──
+    def checkout(merchant=None, items=None):
+        return Checkout(id="co_1", merchant=merchant, line_items=items or [], status=Status.completed,
+                        currency="USD", totals=[Total(type="total", amount=0)],
+                        links=[Link(type="self", url="https://shop.example/checkout")])
+
+    def li(sku, qty):
+        return LineItem(id=f"li_{sku}", item=Item(id=sku, title=sku, price=0), quantity=qty,
+                        totals=[Total(type="total", amount=0)])
+
+    def req(rid, acceptable, qty):  # acceptable=[] → wildcard
+        return LineItemRequirements(id=rid, acceptable_items=[ReqItem(id=a, title=a) for a in acceptable], quantity=qty)
+
+    def open_cm(constraints):
+        return OpenCheckoutMandate(constraints=constraints, cnf=CNF)
+
+    def add_co(name, om, co):
+        violations = check_checkout_constraints(om, co)
+        co_vectors.append({
+            "name": name,
+            "open": om.model_dump(mode="json", by_alias=True, exclude_none=True),
+            "checkout": co.model_dump(mode="json", by_alias=True, exclude_none=True),
+            "ap2Violations": violations,
+            "valid": len(violations) == 0,
+        })
+
+    SHOP = Merchant(id="s-1", name="Shop", website="shop.example")
+    add_co("merchants_pass", open_cm([AllowedMerchants(allowed=[SHOP])]), checkout(merchant=SHOP))
+    add_co("merchants_fail", open_cm([AllowedMerchants(allowed=[Merchant(id="other", name="Other")])]), checkout(merchant=SHOP))
+    add_co("merchants_missing", open_cm([AllowedMerchants(allowed=[SHOP])]), checkout(merchant=None))
+
+    add_co("line_items_simple_pass", open_cm([LineItems(items=[req("r1", ["A"], 1)])]), checkout(items=[li("A", 1)]))
+    add_co("line_items_degree1_pass", open_cm([LineItems(items=[req("r1", ["A"], 1), req("r2", ["B"], 1)])]),
+           checkout(items=[li("A", 1), li("B", 1)]))
+    add_co("line_items_not_acceptable", open_cm([LineItems(items=[req("r1", ["A"], 1)])]), checkout(items=[li("B", 1)]))
+    add_co("line_items_oversupply", open_cm([LineItems(items=[req("r1", ["A"], 1)])]), checkout(items=[li("A", 2)]))
+    add_co("line_items_wildcard_pass", open_cm([LineItems(items=[req("r1", [], 5)])]), checkout(items=[li("A", 2), li("B", 1)]))
+    # complex (degree>1) → exercises the max-flow path
+    add_co("line_items_complex_pass", open_cm([LineItems(items=[req("r1", ["A", "B"], 1), req("r2", ["B", "C"], 1)])]),
+           checkout(items=[li("B", 2)]))
+    add_co("line_items_complex_fail", open_cm([LineItems(items=[req("r1", ["A", "B"], 1), req("r2", ["B", "C"], 1)])]),
+           checkout(items=[li("B", 3)]))
+    add_co("line_items_empty_cart", open_cm([LineItems(items=[req("r1", ["A"], 1)])]), checkout(items=[]))
+
     OUT.write_text(json.dumps(vectors, indent=2) + "\n")
-    print(f"wrote {len(vectors)} constraint vectors -> {OUT}")
-    for v in vectors:
+    CO_OUT.write_text(json.dumps(co_vectors, indent=2) + "\n")
+    print(f"wrote {len(vectors)} payment + {len(co_vectors)} checkout constraint vectors")
+    for v in vectors + co_vectors:
         print(f"  - {v['name']}: violations={len(v['ap2Violations'])} valid={v['valid']}")
 
 

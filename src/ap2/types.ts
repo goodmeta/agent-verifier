@@ -123,3 +123,40 @@ export interface MandateContext {
   total_uses: number;
   last_used_date?: number | null;
 }
+
+// ── Checkout mandate + constraints (mirror `generated/open_checkout_mandate.py`) ─
+export const AllowedMerchantsSchema = z.object({
+  type: z.literal("checkout.allowed_merchants"),
+  allowed: z.array(MerchantSchema),
+});
+const LineItemRequirementsSchema = z.object({
+  id: z.string(),
+  acceptable_items: z.array(z.object({ id: z.string(), title: z.string() })),
+  quantity: z.number().int().positive(),
+});
+export const LineItemsSchema = z.object({
+  type: z.literal("checkout.line_items"),
+  items: z.array(LineItemRequirementsSchema).min(1),
+});
+export const KnownCheckoutConstraintSchema = z.discriminatedUnion("type", [AllowedMerchantsSchema, LineItemsSchema]);
+export type LineItemRequirement = z.infer<typeof LineItemRequirementsSchema>;
+
+export const OpenCheckoutMandateSchema = z.object({
+  vct: z.literal("mandate.checkout.open.1"),
+  constraints: z.array(LooseConstraintSchema),
+  cnf: z.unknown().optional(),
+});
+export type OpenCheckoutMandate = z.infer<typeof OpenCheckoutMandateSchema>;
+
+/** Minimal UCP Checkout — only the fields the constraint evaluators read
+ * (`merchant`, `line_items[].item.id`, `line_items[].quantity`). `extra='allow'`
+ * in AP2, so unknown keys pass through. */
+export const CheckoutSchema = z
+  .object({
+    merchant: MerchantSchema.nullish(),
+    line_items: z
+      .array(z.object({ item: z.object({ id: z.string() }).passthrough(), quantity: z.number().int() }).passthrough())
+      .nullish(),
+  })
+  .passthrough();
+export type Checkout = z.infer<typeof CheckoutSchema>;
