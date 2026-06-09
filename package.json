@@ -6,9 +6,10 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc",
+    "build": "rm -rf dist && tsc",
     "test": "node --import tsx --test test/*.test.ts test/ap2/*.test.ts",
-    "demo": "tsx examples/single-merchant.ts"
+    "demo": "tsx examples/single-merchant.ts",
+    "prepublishOnly": "npm run build && npm test"
   },
   "files": [
     "dist",
