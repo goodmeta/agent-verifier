@@ -46,6 +46,15 @@ function amountsEqual(a: Amount | null | undefined, b: Amount | null | undefined
   return a?.amount === b?.amount && a?.currency === b?.currency;
 }
 
+/** Field-wise instrument equality with null/omitted normalized (matches AP2's
+ * pydantic model equality, where `description: null` == omitted). */
+function instrumentsEqual(
+  a: { id: string; type: string; description?: string | null },
+  b: { id: string; type: string; description?: string | null },
+): boolean {
+  return a.id === b.id && a.type === b.type && (a.description ?? null) === (b.description ?? null);
+}
+
 // ── Per-constraint evaluators (return violation messages) ────────────────────
 
 function amountRange(c: { currency?: string; max?: number | null; min?: number | null }, closed: PaymentMandate): string[] {
@@ -171,10 +180,7 @@ export function checkPresetPaymentClaims(open: OpenPaymentMandate, closed: Payme
   if (open.payment_amount != null && !amountsEqual(open.payment_amount, closed.payment_amount)) {
     v.push("Pre-set amount mismatch"); // AP2 embeds a Python repr; count is asserted
   }
-  if (
-    open.payment_instrument != null &&
-    JSON.stringify(open.payment_instrument) !== JSON.stringify(closed.payment_instrument)
-  ) {
+  if (open.payment_instrument != null && !instrumentsEqual(open.payment_instrument, closed.payment_instrument)) {
     v.push("Pre-set payment_instrument mismatch");
   }
   if (open.execution_date != null && open.execution_date !== closed.execution_date) {

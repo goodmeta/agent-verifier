@@ -24,6 +24,13 @@ function hashForAlg(sdAlg: string | undefined): "sha256" | "sha384" | "sha512" {
 }
 
 function hashAscii(value: string, sdAlg: string | undefined): string {
+  // AP2 hashes `value.encode('ascii')`, which RAISES on non-ASCII. Node's
+  // "ascii" decoder silently masks to the low 8 bits (so 'a' and 'š' would
+  // collide). Reject non-ASCII to match AP2 and avoid a hash collision on the
+  // public hash exports.
+  if (!/^[\x00-\x7f]*$/.test(value)) {
+    throw new Error("Non-ASCII byte in hash input (AP2 hashes ASCII only)");
+  }
   return createHash(hashForAlg(sdAlg)).update(Buffer.from(value, "ascii")).digest("base64url");
 }
 

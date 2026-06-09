@@ -73,3 +73,14 @@ test("getClosedMandateJwt returns the leaf issuer JWT of the final segment", () 
   assert.equal(leaf, rr.chain.split("~~").at(-1)!.split("~", 1)[0]);
   assert.equal(leaf.split(".").length, 3, "leaf is a compact JWT");
 });
+
+// The receipt reference (sd_hash over the final SD-JWT incl. disclosures, per
+// AUTH-17) is deliberately NOT sha256(getClosedMandateJwt) (the SDK helper's
+// docstring). Assert they differ so the divergence stays intentional.
+test("receiptReference is NOT sha256(getClosedMandateJwt) — spec vs SDK-helper", async () => {
+  const { createHash } = await import("node:crypto");
+  const rr = link.receiptReferences.find((r) => r.name === "valid_payment_2hop")!;
+  const leafHash = createHash("sha256").update(Buffer.from(getClosedMandateJwt(rr.chain), "ascii")).digest("base64url");
+  assert.equal(receiptReference(rr.chain), rr.ap2Reference, "reference matches AP2's sd_hash path");
+  assert.notEqual(receiptReference(rr.chain), leafHash, "and is intentionally different from the leaf-JWT hash");
+});

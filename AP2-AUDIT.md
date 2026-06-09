@@ -92,7 +92,7 @@ The only L1 negative still deferred is **disclosure-reorder** (a reordered ≥2-
 | H1 | **Alg pin** | Defers `alg` to upstream lib; examples show ES256 but no exclusivity stated (SPEC-2, IMPL-32/40) | Pin **ES256** (`{algorithms:['ES256']}`) in `sd-jwt.ts` `verifyEs256` on **every** signature (root + every hop); reject none/HS256/RS256 | 🔒 ✅ (`alg_swap_none_root` + `alg_swap_hs256_hop` ⇒ reject) |
 | H2 | **x5c fail-closed** | x5c chain check **fails open** when no trusted roots configured | `keys.ts`: `trustedRoots` mandatory; per-cert validity, `CA:TRUE`, name chaining (`checkIssued`), signature, leaf = P-256, anchor-to-root. `keyUsage`/`pathLen` NOT enforced — node `X509Certificate` exposes only EXTENDED key usage (documented limitation, refinement pending) | 🔒 ✅ (`keys.test.ts`: fail-open/validity/CA/curve hardenings reject; all AP2-confirmed accepts) |
 | H3 | **Single, signed cnf** | First-match across 3 tiers; a disclosure-injected `cnf` can win | `sd-jwt.ts` `cnfJwk`: reject if >1 delegate item carries a `cnf` (`chain.test.ts` H3). AP2 first-matches, so no AP2-confirmed vector — guard asserted directly. Signed-`_sd` digest-binding refinement ⏳ | 🔒 ✅ (guard) / refinement ⏳ |
-| H4 | **aud+nonce required** | Optional; enforced terminal-only if caller passes them | `chain.ts`: `expectedAud`+`expectedNonce` **required** for any KB-bearing chain (fail closed if absent) | 🔒 ✅ (`chain.test.ts` H4) |
+| H4 | **aud+nonce required** + anti-truncation | Optional; enforced terminal-only; no check that the last hop IS terminal (a chain truncated to end on an intermediate hop skips aud/nonce — found in P6 review) | `chain.ts`: `expectedAud`+`expectedNonce` **required** for any KB-bearing chain; the positionally-last hop MUST be terminal-typ (`kb-sd-jwt.ts` `requireTerminal`) | 🔒 ✅ (`chain.test.ts` H4 absent-aud/nonce + truncation→reject) |
 | H5 | **DoS caps** | No caps; O(disclosures×digests) rehash | `chain.ts` `enforceCaps` before crypto (depth ≤8, token ≤64KB, disclosures ≤64/token); digest→value `Map` in unpack | 🔒 ✅ (`chain.test.ts` H5 depth; byte/disclosure caps implemented) |
 | H6 | **Self-computed linkage** | `transaction_id`/`checkout_hash` taken caller-supplied | `chains.ts` self-computes `checkout_hash` from the embedded `checkout_jwt`, mandatory match, no constraint eval without the tie | 🔒 ✅ (`chains.test.ts` `cc_tampered_hash` rejects where AP2 accepts) |
 | H7 | **x5c anchored-not-present** | trusted root = "last cert signed by a configured root" | `keys.ts` matches AP2 (base64url decode, anchor by signature, root NOT in chain) — wire compat | ✅ (`valid_x5c` accepts, `x5c_untrusted_root` rejects) |
@@ -196,10 +196,26 @@ AP2-confirmed accepts we reject as stricter hardenings) + 24 payment-constraint 
 + 3 checkout-chain + 4 receipt-reference — every faithfulness case validated against AP2's own SDK output;
 every reject reason-pinned.
 
-**Next:** P6 — fresh adversarial review → migration/docs (rename `signMandate`→`signReceipt`, quarantine
-legacy camelCase, wire `index.ts`) → publish v0.5 + `npm deprecate "<0.5"`. Deferred minor items:
-disclosure-reorder vector (L1 note); H2 basic-keyUsage/pathLen (node `X509Certificate` limitation);
-H3 signed-`_sd` digest-binding refinement.
+## 11a. P6 adversarial review (6 independent reviewers, AP2 side-by-side)
+
+Run before publish. Verdict: **publish-ready after fixes.** One genuine fail-open found and fixed; the
+rest of the verifier (sigs, disclosure/cnf forge-resistance, x5c, constraints byte-exact over 12k
+differential cases, max-flow, H6) confirmed clean.
+
+| Sev | Finding | Resolution |
+|---|---|---|
+| **HIGH** | aud/nonce bypass — a chain truncated to end on an intermediate-typ hop skipped the terminal-only aud/nonce check, verifying under attacker-chosen aud/nonce (defeats H4) | **Fixed** — `requireTerminal` on the last hop (`kb-sd-jwt.ts`/`chain.ts`); `chain.test.ts` truncation→reject |
+| LOW | `CHAIN_CAPS` runtime-mutable via the public barrel | **Fixed** — `Object.freeze` |
+| LOW | `hashAscii` masked non-ASCII (collision where AP2 raises), reachable via public `computeValueHash` | **Fixed** — strict-ASCII guard |
+| LOW | preset `payment_instrument` `JSON.stringify` false-rejected `description:null` vs omitted | **Fixed** — field-wise null-normalized compare |
+| MED | `receiptReference` (sd_hash of final SD-JWT, spec AUTH-17) differs from the SDK `get_closed_mandate_jwt` docstring | **Documented** — JSDoc on both + `chains.test.ts` asserts the deliberate difference (our behavior is spec-correct) |
+
+Deferred (defense-in-depth, NOT wire-attacker exploitable — all require a malicious/buggy *issuer*, who
+already controls the next-hop key): H3 `cnf` guard covers only tier-1 delegate items (tiers 2/3 are
+signed, so not attacker-injectable) + the signed-`_sd` digest-binding refinement; `cnfDict` requires
+`jwk` to be an object where AP2 checks key-presence (throws-vs-skip on a malformed signed `jwk`).
+Also deferred: disclosure-reorder vector (L1 note); H2 basic-keyUsage/pathLen (node `X509Certificate`
+limitation, bounded by the `CA:TRUE` check).
 
 ## 12. Re-audit / reproduce
 

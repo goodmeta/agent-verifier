@@ -82,6 +82,10 @@ export interface KbHopOptions {
    * them mandatory for any KB-bearing chain — hardening H4). */
   expectedAud?: string;
   expectedNonce?: string;
+  /** When set (the chain's positionally-last hop), the hop MUST be terminal-typ
+   * — otherwise a chain truncated to end on an intermediate hop would skip the
+   * aud/nonce check (H4 bypass). Stricter than AP2. */
+  requireTerminal?: boolean;
 }
 
 /**
@@ -108,5 +112,12 @@ export async function verifyKbHop(token: ParsedToken, prev: ResolvedToken, opts:
   const hasCnf = delegatePayloadHasCnf(payload);
   if (isTerminal && hasCnf) throw new Error("Terminal KB-SD-JWT MUST NOT carry a 'cnf' claim");
   if (isIntermediate && !hasCnf) throw new Error(`Intermediate ${typ} requires a 'cnf' claim`);
+
+  // H4 anti-truncation: the chain's last hop MUST be terminal-typ. Placed after
+  // the cnf-presence checks so a non-terminal last hop still rejects (its
+  // aud/nonce would otherwise be silently skipped under attacker-chosen values).
+  if (opts.requireTerminal && !isTerminal) {
+    throw new Error(`Final chain hop must be a terminal KB-SD-JWT, got typ '${String(typ)}'`);
+  }
   return payload;
 }

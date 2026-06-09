@@ -148,7 +148,14 @@ export function verifyCheckoutChain(chain: CheckoutChain, opts: VerifyCheckoutCh
 // ── Receipt reference ────────────────────────────────────────────────────────
 
 /** The closed-mandate leaf JWT of a chain (port of `get_closed_mandate_jwt`):
- * the issuer JWT of the final `~~`-separated segment. */
+ * the bare issuer JWT (no disclosures) of the final `~~`-separated segment.
+ *
+ * NOTE: this is for embedding/identifying the closed mandate. It is NOT the
+ * receipt-reference input — use `receiptReference()` for that. (AP2's SDK
+ * `get_closed_mandate_jwt` docstring suggests `sha256` of this string as the
+ * reference, but the AP2 spec (AUTH-17) defines the reference as `sd_hash` over
+ * the final SD-JWT *including disclosures*; we follow the spec. The two differ.)
+ */
 export function getClosedMandateJwt(presentationToken: string): string {
   const lastSegment = presentationToken.split("~~").at(-1) as string;
   return lastSegment.split("~", 1)[0];
@@ -157,7 +164,9 @@ export function getClosedMandateJwt(presentationToken: string): string {
 /**
  * Stable receipt `reference` for a chain (AUTH-17 / SPEC-6): the base64url hash
  * of the FINAL SD-JWT in the chain, computed "in the same manner as `sd_hash`"
- * — i.e. `sd_hash` over the last segment's canonical SD-JWT form.
+ * — i.e. `sd_hash` over the last segment's canonical SD-JWT form (issuer JWT +
+ * disclosures). This is the spec-authoritative reference; it is deliberately
+ * NOT `sha256(getClosedMandateJwt(chain))` (see that function's note).
  */
 export function receiptReference(presentationToken: string): string {
   const segments = presentationToken.split("~~");

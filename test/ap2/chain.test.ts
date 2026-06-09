@@ -73,6 +73,22 @@ test("H4: a KB-bearing chain fails closed when aud/nonce are absent", async () =
   await assert.rejects(verifyChain(splitChain(v.chain), v.rootKey, {}), /required/i);
 });
 
+// H4 anti-truncation: drop the genuine terminal hop so the chain ends on the
+// intermediate (kb+sd-jwt+kb). Its aud/nonce were never bound, so without the
+// terminal-required check it would verify under ANY attacker aud/nonce.
+test("H4: a chain truncated to end on an intermediate hop is rejected (no aud/nonce bypass)", async () => {
+  const v = get("valid_payment_3hop");
+  const segs = v.chain.split("~~");
+  // root ~~ intermediate, with the intermediate restored as a valid FINAL
+  // SD-JWT segment (trailing `~`) so it parses + its sig/binding verify — the
+  // attack only fails on the terminal-required check, not on a parse error.
+  const truncated = `${segs[0]}~~${segs[1]}~`;
+  await assert.rejects(
+    verifyChain(splitChain(truncated), v.rootKey, { expectedAud: "attacker", expectedNonce: "attacker" }),
+    /terminal/i,
+  );
+});
+
 test("H5: the chain-depth cap is enforced before any crypto", async () => {
   const v = get("valid_payment_2hop");
   const root = splitChain(v.chain)[0];

@@ -20,12 +20,13 @@ import { verifyKbHop } from "./kb-sd-jwt.js";
 
 type Json = Record<string, unknown>;
 
-/** DoS caps (H5) — initial values, tunable. */
-export const CHAIN_CAPS = {
+/** DoS caps (H5) — frozen so a consumer of the public barrel can't weaken them
+ * process-wide (`as const` is compile-time only). */
+export const CHAIN_CAPS = Object.freeze({
   maxDepth: 8,
   maxTokenBytes: 64 * 1024,
   maxDisclosuresPerToken: 64,
-} as const;
+});
 
 const DEFAULT_CLOCK_SKEW_SECONDS = 300;
 
@@ -106,6 +107,7 @@ export async function verifyChain(
     const payload = await verifyKbHop(tokens[i], prev, {
       expectedAud: isLast ? opts.expectedAud : undefined,
       expectedNonce: isLast ? opts.expectedNonce : undefined,
+      requireTerminal: isLast, // H4 anti-truncation: last hop must be terminal-typ
     });
     const delegateItems = resolveDelegateItems(payload["delegate_payload"], tokens[i]);
     if (!isLast && delegateItems.length > 1) {
