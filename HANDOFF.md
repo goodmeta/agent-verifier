@@ -1,102 +1,122 @@
-# HANDOFF — 2026-06-09 (UTC)
+# HANDOFF — 2026-06-13 (UTC)
 
 ## TL;DR
-- **Stage:** agent-verifier v0.5 (real AP2 dSD-JWT mandate verifier) is **BUILT, REVIEWED, and PUBLISHED to npm.** P0–P6 complete.
-- **Last shipped:** `@goodmeta/agent-verifier@0.5.0` published 2026-06-09 04:45 UTC (npm `latest`). Verified live (`npm view` → 0.5.0). Repo at `311be28`, gate green (build clean, 125 tests, 0 vulns).
-- **Next:** **agent-verifier-pro PARITY** — the paid hosted service (verifier.goodmeta.co) still runs the OLD EIP-712 model; migrate it to the v0.5 `ap2.*` dSD-JWT verifier so the product matches the now-correct OSS lib. (Plus two loose ends: run `npm deprecate "<0.5"` — OTP-gated; discharge aeoess #98 — now unblocked.)
+- **Stage:** Good Meta agent-payment ecosystem. The OSS lib `@goodmeta/agent-verifier@0.5.0` is DONE + published (prior session, **untouched this session**). This session = make every *other* public GM artifact reflect real AP2 + spec engagement + a new opportunity-CRM.
+- **Last shipped:** aeoess #98 comment + PR #110 (crosswalk `release` cell → first-class); `@goodmeta/agent-verifier-mcp@0.2.0` live on npm; both example repos migrated/fixed + pushed; `gm-crm` v1 built (local).
+- **Next:** operator-gated one-liners (`npm deprecate "<0.5"`, set `AP2_TRUSTED_KEYS`), OR the AP2 #259 `iss`-MUST PR, OR re-triage the 24 recovered CRM monitors.
 
 ## Where we are
-The OSS library is DONE and SHIPPED. The full dSD-JWT verifier was built phase-by-phase, byte-exact vs AP2's reference SDK (pinned commit `e1ea56d`), passed a 6-reviewer adversarial review (1 HIGH fail-open found + fixed), and is published.
+This repo (`agent-verifier`, the OSS lib) was **not modified this session** — still `c8ec181`, v0.5.0 on npm, gate green from last session (125 tests). All work was in the *ecosystem around it*:
 
-| Phase | Status | Evidence |
-|---|---|---|
-| P0 generator + payment vectors | ✅ | `test/fixtures/ap2-*.json` minted from AP2's real SDK |
-| P1 parse / hash / jwk | ✅ | byte-exact vs AP2 (`f59cf14`) |
-| P2 root verify + disclosure resolution | ✅ | `c6b79d6` |
-| P3 kb-sd-jwt + chain (+8 hand-built negatives) | ✅ | `ece17aa`, `ff51904` |
-| P4 x5c fail-closed + kid | ✅ | `a205d9b` (6 x5c vectors, 4 AP2-confirmed-accept hardenings) |
-| P5 types + 10 constraints (max-flow) + linkage + receipt-ref | ✅ | `b22202c`/`e7f95e9`/`c0b6a9b` (byte-exact violations) |
-| P6 migration/docs + review + publish | ✅ | `6003272`/`8b9167f`/`311be28` + npm 0.5.0 live |
+| Artifact | State after this session |
+|---|---|
+| `@goodmeta/agent-verifier` (OSS lib) | v0.5.0, unchanged, published. Real AP2 dSD-JWT verifier. |
+| `agent-verifier-pro` (hosted, verifier.goodmeta.co) | Done prior session; deployed, verify dark until trust keys. Untouched this session. |
+| `ap2-x402-example` (public OSS) | ✅ Migrated to real AP2 via the lib. Pushed `11e0a46`. |
+| `a2a-x402-payment-agent` (public OSS) | ✅ Kept ERC-2612 (correct per GM facilitator), default → x402.goodmeta.co. Pushed `8d44b5d`. |
+| `@goodmeta/agent-verifier-mcp` | ✅ v0.2.0 published (7 tools). Pushed `5842f49`. |
+| `gm-crm` (NEW local tool) | ✅ v1 built. 41 signals (16 today + 25 recovered). Local git, **unpushed**. |
+| aeoess/agent-governance-vocabulary #98 | ✅ Comment + PR #110 posted (release-cell). Awaiting maintainer merge. |
 
-**65 golden vectors, 125 tests, all validated against AP2's own SDK output.** Conformance matrix: `AP2-AUDIT.md` (every AP2 requirement → test/vector, pinned to `e1ea56d`; §11a logs the P6 review).
+**Every public GM artifact now reflects real AP2 / v0.5.** The one ecosystem theme of the session.
 
 ## Mandatory rules (do not skip)
-- **Match AP2's WIRE FORMAT byte-exact; be STRICTER than AP2 on trust** (PLAN-AP2.md §5 H1–H7, all live). Every divergence is a documented hardening in AP2-AUDIT.md.
-- **Golden vectors from AP2's SDK (commit `e1ea56d`) are the source of truth.** Faithfulness directive (operator, 2026-06-07): "keep golden vectors + line-for-line port of AP2's Python algorithm — 100% faithful." Pinned to `e1ea56d`; if AP2 changes, re-audit.
-- **Never claim "shipped" without the gate:** `npm run build && npm test && npm audit`. (`build` now cleans `dist`; `prepublishOnly` re-runs build+test.)
-- **Never `npm publish` / `git push` without explicit operator approval.** v0.5 publish WAS approved + done. Future publishes need fresh approval. npm publish/deprecate require 2FA OTP (operator-supplied).
-- **No `Co-Authored-By`; short commit messages** (operator preference).
-- Global: sanity-check-before-recommending; no-overclaim (applies to our own docs); verify-claims; show-don't-ship for any public protocol-repo post.
+- **spec-engagement discipline** (the big one this session): verify-claims gate (opener + most-recent commenter) BEFORE engaging; tier A/B/C; impact gate (who reads / what they DO / what intel / concrete positioning); **show-don't-ship** (Claude drafts, Eric posts — never auto-post to protocol repos unless Eric says "post now"); 5-perspective council on consequential replies; 12h cooling-off (waive-able) via `VAULT/Projects/Good-Meta/Spec-Outbox.md`.
+- **no-overclaim** — TWO incidents this session (see post-mortem). Retract immediately when challenged; don't manufacture substance.
+- **verify-claims** — check primary sources; don't assume. (Caught: a2a was NOT broken; AP2 still at pinned commit; SpendGuard pkg real; AsterPay ecosystem claim FALSE.)
+- **Never claim "shipped" without the gate.** Per-repo gates: lib = `npm run build && npm test && npm audit`; ap2-x402-example = `npm run typecheck && npm test`; mcp = `npm run typecheck && npm run build` + tools handshake; pro = its test loop.
+- **Never `npm publish` / `git push` / deploy / post-to-public-thread without explicit operator approval.** This session all pushes + the #98 post + the MCP publish were operator-approved.
+- No `Co-Authored-By`; short commit messages. Exact-pin new deps (no `^`/`~`).
+- Global: sanity-check-before-recommending; context-first (lead with plain-English catch-up).
 
 ## Active task list (snapshot — IDs don't survive sessions)
-- **[in_progress]** agent-verifier-pro PARITY — migrate the hosted service to the v0.5 `ap2.*` dSD-JWT verifier (it still uses the old EIP-712 / whole-payload-JWS model the OSS lib just abandoned).
-- [pending] `npm deprecate "@goodmeta/agent-verifier@<0.5"` — OTP-gated, one command (text below).
-- [pending] Discharge aeoess #98 — crosswalk `release`-cell PR + comment; was BLOCKED on v0.5 publish, now UNBLOCKED. show-don't-ship.
-- [pending] agent-verifier-pro: commit its untracked `ADVERSARIAL-REVIEW-LOG.md` (durability).
-- [pending] (deferred, documented, non-blocking) disclosure-reorder vector; H3 tier-2/3 cnf guard + signed-`_sd` refinement; H2 keyUsage/pathLen. All issuer-malicious-only (not wire-exploitable) per the P6 review.
+- [pending] AP2 Conformance Suite DD (FLAGSHIP, web-research, Fable-session)
+- [pending] Verifier ICP discovery (Fable, web)
+- [pending] [operator] `npm deprecate "@goodmeta/agent-verifier@<0.5"` (OTP)
+- [pending] [operator] Enable pro verification — set `AP2_TRUSTED_KEYS` (needs real issuer key)
+- [pending] [later] Build `@goodmeta/ap2-issuer` (separate package; minting ≠ verifier)
+- [pending] [maybe-PR] AP2 #259 — enforce `iss` MUST in SD-JWT (the one on-canon "do-something"; as a PR not a reply)
+- [pending] [intel] Log AsterPay + BlindOracle competitors in ICP tracker
+- [pending] [content] claude-code #66438 anecdote (honest framing — NOT a mandate case)
+- [pending] [gm-crm] Re-triage 24 recovered historical monitors + wire future scans into CRM
 
-## Task rehydration — run these first in a new session
+## Task rehydration — run these TaskCreate calls first in a new session
 ```json
-{
-  "subject": "agent-verifier-pro parity with v0.5 dSD-JWT verifier",
-  "activeForm": "Migrating agent-verifier-pro to the v0.5 verifier",
-  "description": "agent-verifier (OSS) v0.5 is PUBLISHED and verifies REAL AP2 mandates (dSD-JWT chains) via the ap2.* namespace. agent-verifier-pro (~/code/goodmeta/agent-verifier-pro, hosted at verifier.goodmeta.co, Fly.io) STILL runs the OLD model: EIP-712 / whole-payload ES256 JWS, which is AP2's RECEIPT format, not its MANDATE format. So the paid product overstates AP2 compat exactly as the OSS lib did before this session. TASK: bring pro to parity. (1) Audit pro's src/engine verification path — confirm it's the old model. (2) Decide integration: depend on @goodmeta/agent-verifier@0.5 and route mandate verification through ap2.verifyChain + ap2.verifyPaymentChain (+ x5c provider), keeping pro's budget/hold/settle/refund state layer (which is solid). (3) Pro shares AP2's sign≠enforce + NaN-date traits on the EIP-712 path — those die with the migration. (4) Re-verify on prod after deploy (hit the URL). NOTE: pro was NOT touched or re-verified this session — confirm its current state firsthand before changing. SUCCESS: pro verifies a real dSD-JWT mandate end-to-end; honest changelog; deployed + verified live. Never deploy untested; run pro's tests first."
-}
+{"subject":"AP2 Conformance Suite DD (FLAGSHIP)","activeForm":"Scoping the AP2 conformance suite play","description":"Highest-leverage long-term GM reputation play (VAULT/Projects/Good-Meta/AP2-Conformance-Suite.md). DD (web, Fable): is anyone in FIDO's Agentic Auth/Payments WGs scoping AP2 conformance? Google/FIDO conformance plan? FIDO contributor process? third-party AP2 conformance repos? First artifact: carve the OSS verifier's vectors + AP2-AUDIT.md + gen_ap2_vectors.py into a standalone implementation-agnostic ap2-conformance harness, contribute into FIDO TWG as reference vectors (NOT a self-declared cert)."}
 ```
 ```json
-{
-  "subject": "Deprecate agent-verifier <0.5 on npm",
-  "activeForm": "Deprecating <0.5",
-  "description": "v0.5.0 is published (latest). Old 0.2.0 is still undeprecated (the deprecate command is 2FA-OTP-gated and was deferred). Operator runs: npm deprecate \"@goodmeta/agent-verifier@<0.5\" \"Versions < 0.5 did NOT verify real AP2 mandates (0.2.x EIP-712; 0.4.0 receipt-JWS). Upgrade to 0.5.0.\" — then verify: npm view @goodmeta/agent-verifier@0.2.0 deprecated."
-}
+{"subject":"Verifier ICP discovery (Fable 5)","activeForm":"Running verifier ICP discovery","description":"Verifier has NO confirmed ICP. Run VAULT/Projects/Good-Meta/Verifier-Prospecting-Prompt.md (Fable, web) -> 2-3 named ICP archetypes + evidence + kill list. Validate each via Verifier-ICP-Validation-Script.md (Mom-Test, >=3/5). Frame: discovery not conversion."}
 ```
 ```json
-{
-  "subject": "Discharge aeoess #98 (now unblocked by v0.5 publish)",
-  "activeForm": "Drafting #98 crosswalk PR + comment",
-  "description": "v0.5 now ships real AP2 release/refund support, so Eric's 2026-06-04 commitment on aeoess/agent-governance-vocabulary#98 is unblocked. (1) crosswalk budget_reservation.yaml goodmeta 'release' cell PR; (2) #98 follow-up comment. show-don't-ship: 5-perspective council, stage gh, operator posts. verify-claims first."
-}
+{"subject":"[operator] npm deprecate @goodmeta/agent-verifier <0.5","activeForm":"Deprecating <0.5","description":"OTP-gated. Operator runs: npm deprecate \"@goodmeta/agent-verifier@<0.5\" \"Versions < 0.5 did NOT verify real AP2 mandates (0.2.x EIP-712; 0.4.0 receipt-JWS). Upgrade to 0.5.0.\"  then verify npm view @goodmeta/agent-verifier@0.2.0 deprecated."}
+```
+```json
+{"subject":"[operator] Enable pro verification (set AP2_TRUSTED_KEYS)","activeForm":"Enabling pro verification","description":"Pro /v1/verify is fail-closed DARK until trust anchors set. When a real issuer P-256 key exists, set AP2_TRUSTED_KEYS (or AP2_TRUSTED_ROOTS) as a Fly secret on app ap2-verifier (under eric@goodmeta.co). See agent-verifier-pro/ISSUER-ONBOARDING.md. NOTE budget API (/v1/budgets,check,settle,release,refund) is already live w/o trust keys — only AP2 mandate verify is dark."}
+```
+```json
+{"subject":"[later] Build @goodmeta/ap2-issuer (separate package)","activeForm":"Tracking the deferred ap2-issuer package","description":"Minting AP2 dSD-JWT mandates does NOT belong in agent-verifier (keep verifier verify-only: trust-role separation, neutral-validator positioning for conformance, avoid circular demos). Today minting = drive AP2's Python SDK (gen_ap2_vectors.py). When a concrete consumer needs runtime TS minting (real-issuer dogfood / customer SDK), build a SEPARATE @goodmeta/ap2-issuer. For now vector-gen lives in the conformance-suite repo."}
+```
+```json
+{"subject":"[maybe-PR] AP2 #259 — enforce iss MUST in SD-JWT mandates","activeForm":"Scoping the AP2 #259 iss-enforcement PR","description":"Single most on-canon opportunity from the 16-signal scan (it's exactly what agent-verifier does). Thread has no maintainer + a chopmob-cloud Tier-C spam comment offering to PR it. Higher-leverage = OPEN THE PR YOURSELF (verifier code backs an iss MUST), route around the thread. show-don't-ship: verify current AP2 SD-JWT iss handling first, draft PR + council, Eric approves before opening. Do NOT just reply. In gm-crm verdict=engage, next_review 2026-06-16."}
+```
+```json
+{"subject":"[intel] Log AsterPay + BlindOracle as competitors/prospects","activeForm":"Logging competitor intel","description":"AsterPay (petteri74dev, asterpay.io) Tier B — REAL budget-reservation facilitator (npm @asterpay/mcp-server@2.1.0, x402.asterpay.io/v1/budget/info live, KYA trust scoring) — closest competitor to GM wedge; overclaims x402.org standing (NOT in ecosystem, verify-claims FAIL). BlindOracle (craigmbrown, AP2 #280) Tier C agent-trust self-promo. Log both in VAULT Good-Meta ICP/competitor tracker; verify AsterPay ecosystem claim before contact; do NOT engage their GitHub threads. Both are rows in gm-crm."}
+```
+```json
+{"subject":"[content] claude-code #66438 anecdote","activeForm":"Filing the #66438 content anecdote","description":"anthropics/claude-code #66438: Opus 4.7 retried a paid Expo EAS build (~$3-5 quota) after being told to ask. HONEST framing: SaaS-quota / conversational-auth-drift, NOT an AP2 payment-mandate failure. Soft anecdote ONLY for 'verbal spend rules don't hold under agent flow-state -> need a structural spend-auth layer'. Newsletter/expert-call context; NO public comment (self-filed, dup-flagged). gm-crm verdict=content, next_review 2026-06-19."}
+```
+```json
+{"subject":"[gm-crm] Re-triage 24 recovered monitors + wire scans into CRM","activeForm":"Re-triaging the recovered monitor backlog","description":"gm-crm (~/code/goodmeta/gm-crm, local git 2 commits, UNPUSHED). SQLite opportunity CRM: dedup-by-url, persistent verdict/state, next_review. 41 signals (16 from 2026-06-12 scan + 25 historical monitors recovered from past ~/vvv Claude transcripts 2026-05-13..06-04). FOLLOW-UPS: (1) re-triage the 24 monitors in `python3 crm.py due` — many 3-4wk old, likely some closed/stale/false-positive (hyperswitch #12282 = card-mandate false-positive like #12687); verify-claims live ones, set verdict+next_review or done/skip. (2) WORKFLOW: every future scan -> seed/<date>-scan.json -> `python3 crm.py ingest` (re-ingest safe, COALESCE preserves decisions). (3) maybe generate a vault markdown digest. (4) decide on a GitHub remote/push. Usage: gm-crm/README.md."}
 ```
 
 ## What changed this session (chronological, latest first)
-- **PUBLISHED** `@goodmeta/agent-verifier@0.5.0` to npm (2026-06-09 04:45 UTC), operator-approved, OTP completed by operator. Verified live.
-- `311be28` P6: `build` now `rm -rf dist && tsc` + `prepublishOnly` gate. WHY: dry-run caught stale `dist/mandate-jwt.*` + `dist/sign.*` that would have shipped the old `signMandate` API.
-- `8b9167f` P6 review fixes: closed the **HIGH chain-truncation fail-open** (aud/nonce bypass — a chain truncated to end on an intermediate hop skipped the terminal-only aud/nonce check) + froze CHAIN_CAPS + ASCII hash guard + instrument null-parity + receiptReference docs. WHY: the 6-reviewer adversarial review (publish gate).
-- `6003272` P6 migration/docs: `signMandate`→`signReceipt` (it's the receipt format), wired `ap2.*` public namespace, honest README/CHANGELOG (dSD-JWT), v0.5.0. WHY: the public surface was misnaming receipts as mandates.
-- `6a05668` AP2-AUDIT P5 complete; `c0b6a9b`/`e7f95e9`/`b22202c` P5a/b/c (types, constraints, max-flow, wrappers, linkage, receipt-ref). WHY: the mandate-semantics + constraint surface, byte-exact vs AP2.
+- `gm-crm` `76411a6` — recovered 25 historical monitor signals from past `~/vvv` Claude session transcripts (8 scans, 2026-05-13..06-04). WHY: weekly scans leaked "monitor" items; this is the durable fix.
+- `gm-crm` `77541d1` — gm-crm v1: SQLite opportunity CRM + retro-load of the 2026-06-12 scan (16 signals). WHY: "monitor" verdicts had no backing store → signals evaporated between scans.
+- aeoess #98 comment + **PR #110** (on Ectsang fork → upstream) — crosswalk `release` cell `goodmeta '-' → release` (first-class in v0.5). WHY: makes good on Eric's 06-04 statement; v0.5 ships /v1/release distinct from /v1/refund.
+- `agent-verifier-mcp` `5842f49` — v0.2.0: added release/refund/query_reservation (mirror pro's hosted /mcp, 7 tools), pinned zod, fixed stale header. **Published to npm.** WHY: the npm pkg lagged pro's MCP by 3 tools.
+- `a2a-x402-payment-agent` `8d44b5d` — default facilitator SBC → x402.goodmeta.co. WHY: it's the GM repo; ERC-2612 was already correct (verified via /supported = erc2612).
+- `ap2-x402-example` `11e0a46` — full migration EIP-712-fake → real AP2 dSD-JWT via @goodmeta/agent-verifier@0.5.0; minted real scenario mandates; dropped viem; npm test + honest README. WHY: it was teaching a fake AP2 model.
 
 ## Open known issues
-- **agent-verifier-pro is on the OLD AP2 model** (EIP-712 / receipt-JWS) — the headline parity gap. Not touched this session.
-- **`npm deprecate "<0.5"` not yet run** (OTP-gated). 0.2.0 still shows no deprecation warning.
-- **Deferred verifier items (documented, non-blocking, NOT wire-exploitable):** disclosure-reorder vector; H3 cnf guard only covers tier-1 delegate items (tiers 2/3 are signed → not attacker-injectable) + signed-`_sd` refinement; `cnfDict` requires `jwk` object where AP2 checks key-presence; H2 basic-keyUsage/pathLen (node `X509Certificate` doesn't expose them, bounded by `CA:TRUE`). All require a malicious/buggy issuer who already controls the keys.
-- **Generator non-determinism (chain vectors):** ECDSA random nonce + random salts ⇒ re-running `gen_ap2_vectors.py` churns all chain vectors. Committed JSON is the source of truth. Constraint vectors (`gen_ap2_constraint_vectors.py`) ARE deterministic.
+- **gm-crm is unpushed** (local git only). No GitHub remote yet. `signals.db` is gitignored (only script + seed JSON versioned).
+- **24 recovered monitors are un-triaged** — loaded as `monitor`/next_review 2026-06-12, surfacing in `crm.py due`. Many 3-4wk old, likely some closed/stale/false-positive. Need a re-triage pass (task #14).
+- **MCP README signup is stale** — references `POST /setup/merchants` which is DEMO_MODE-only (404 on prod, and it WIPES the DB). Public self-signup doesn't exist on prod. (Did not fix this session — flag.)
+- **AsterPay ecosystem claim unverified-as-FALSE** — they claim x402.org/ecosystem approval (Feb-11-2026) but are NOT listed. Verify before any contact.
+- **AP2 unchanged** — pin `e1ea56d` is still the tip of AP2 main (verified). "byte-exact" still holds.
+- Deferred verifier items from prior session (disclosure-reorder vector, H3 tier-2/3 cnf, H2 keyUsage/pathLen) — all issuer-malicious-only, not wire-exploitable. Untouched.
 
 ## Process state
-- No background processes/daemons. No long-running jobs.
-- npm: `@goodmeta/agent-verifier@0.5.0` live, tag `latest`; 0.2.0 still present (undeprecated). Authed as `goodmeta`.
-- Vector-regen tool: Python venv `/tmp/ap2venv` with AP2 SDK at `e1ea56d` (ephemeral /tmp). Recreate: `python3.13 -m venv /tmp/ap2venv && /tmp/ap2venv/bin/pip install "git+https://github.com/google-agentic-commerce/AP2.git@e1ea56db72a6385bce3e5c1112b3a56ce60acb43"`.
-- Last gate verdict: PASS — build clean, 125/125 tests, 0 vulns. Working tree clean.
+- No background processes/daemons running (local pro on :4010 + demo merchant on :3000 were started for verification and killed; ports clear).
+- npm: `@goodmeta/agent-verifier@0.5.0` latest; `@goodmeta/agent-verifier-mcp@0.2.0` latest (published this session, verified live).
+- Last gates: ap2-x402-example 24/24 tests + 4 demos + HTTP flow ✓ 0 vulns; mcp tsc+build+7-tool handshake ✓; a2a tsc ✓ (payment path not e2e-tested — needs funded wallet, deemed unnecessary as code unchanged); pro budget API verified live via local run (all 7 MCP tools end-to-end).
+- gm-crm: 41 signals (monitor 28, skip 9, content 1, done 1, engage 1, after #98→done). `crm.py due` shows 24 (the recovered backlog).
 
 ## Files modified this session
-- `src/`: new `ap2/{sd-jwt,kb-sd-jwt,chain,keys,types,constraints,max-flow,chains,index}.ts`; `receipt-jwt.ts` (renamed from `mandate-jwt.ts`); `index.ts` rewired; comment fixes in `verify.ts`/`schema.ts`.
-- `test/`: new `ap2/{sd-jwt,chain,keys,constraints,checkout-constraints,chains}.test.ts`; `receipt-jwt.test.ts` (renamed).
-- `test/fixtures/`: `gen_ap2_vectors.py`, `gen_ap2_constraint_vectors.py`, 5 `ap2-*.json` vector files.
-- docs/config: `AP2-AUDIT.md` (new, conformance matrix), `README.md`, `CHANGELOG.md`, `package.json` (0.5.0 + build hygiene), `examples/single-merchant.ts`, `PLAN-AP2.md`.
+- `agent-verifier` (this repo): only `HANDOFF.md` (this file). Lib code untouched.
+- `ap2-x402-example/`: full rewrite — new `verify-mandate.ts`, `verify-flow.ts`, `verify.test.ts`, `fixtures/{gen_example_vectors.py,ap2-scenarios.json,scenarios.ts}`; rewrote middleware/{index,types,agent-card,payment-router}.ts, demo-merchant/{server,agent-demo}.ts, demos/{ramp,square,coupa}.ts; deleted ap2-signer/ap2-types/cart+intent-flow/mandate-verifier; README; package.json (drop viem, +agent-verifier).
+- `a2a-x402-payment-agent/`: `src/server/index.ts` + `.env.example` (facilitator default only).
+- `agent-verifier-mcp/`: `src/index.ts` (7 tools), `package.json` (+zod, 0.2.0), `README.md`, `dist/`.
+- `gm-crm/` (NEW): `crm.py`, `README.md`, `.gitignore`, `seed/2026-06-12-opportunity-scan.json`, `seed/historical-monitors.json`.
+- Vault (iCloud, not git): `Projects/Good-Meta/Spec-Outbox.md` (#98 → SHIPPED).
 
 ## Anti-patterns (the next agent must NOT do)
-- **Don't assume pro is correct** — it's still on the old AP2 model; verify its state firsthand before claiming parity.
-- **Don't guess AP2** — every byte checked against committed golden vectors / AP2's source at `e1ea56d`.
-- **Don't let `@sd-jwt/*` verify sigs or resolve keys** — jose, ES256-pinned, key out-of-band (native port for disclosure math).
-- **Don't `npm publish` / deploy / `git push` without operator approval.** Don't claim "shipped" without the gate. Don't deploy pro untested.
-- **Don't re-run `gen_ap2_vectors.py` and commit only one JSON file** (chain vectors non-deterministic).
+- **Don't take the opportunity-scanner's suggested "Actions" at face value** — they over-recommend "comment / co-author / reference agent-verifier" on threads that fail the impact gate (no maintainer present) or elevate Tier-C parties. Triage with verify-claims + tier first.
+- **Don't overclaim** — this session had 2 (a2a "broken"; the grace-window claim). Verify primary sources; retract on challenge.
+- **Don't engage spec threads with no maintainer + Tier-C contamination** (most of the 16 scan signals).
+- **Don't assume the OSS lib changed** — it didn't this session; it's v0.5.0 published.
+- **Don't auto-post to public protocol threads / push / publish without operator approval.** Don't claim "shipped" without the per-repo gate.
+- **Don't re-ingest a scan expecting it to overwrite decisions** — gm-crm ingest COALESCEs (preserves verdict/next_review); use `crm.py decide` to change a decision.
 
 ## Studies / parked items
-- `PLAN-AP2.md` §11 hardest items — all built + reviewed.
-- Cross-repo: `agent-verifier-pro` parity is the active follow-on (see rehydration). It also has an untracked `ADVERSARIAL-REVIEW-LOG.md` to commit.
-- Vault: `Projects/PROGRESS.md` line 90 "Agent Verifier (OSS SDK)" tracks status.
+- AP2 Conformance Suite (flagship) — `VAULT/Projects/Good-Meta/AP2-Conformance-Suite.md`.
+- Verifier ICP discovery instruments — `VAULT/Projects/Good-Meta/Verifier-Prospecting-Prompt.md` + `Verifier-ICP-Validation-Script.md`.
+- gm-crm v2 ideas — vault markdown digest of the DB; GitHub remote; auto-ingest hook from the scanner.
 
 ## Discipline failure post-mortem (most recent)
-No shipped incident. The publish dry-run CAUGHT two would-be problems before they shipped: (1) npm 2FA blocked an un-approved-looking flow until the operator completed OTP (correct gate); (2) `tsc` had left stale `dist/mandate-jwt.*` + `dist/sign.*` from renamed/deleted sources, which the `--dry-run` surfaced — fixed by making `build` clean `dist` first. Lesson reinforced: always `npm publish --dry-run` and read the file list before a real publish.
+**Two no-overclaim slips this session, both caught before shipping public (the gates worked).**
+1. **a2a "broken" overclaim.** I asserted the a2a x402 client was broken / would be rejected, and started an EIP-3009 rewrite — assuming a standard Coinbase-style facilitator. Eric corrected; checking `x402.goodmeta.co/supported` (primary source) showed `assetTransferMethod: erc2612` — the original ERC-2612 was *correct* for GM's facilitator. Reverted; net change was just the facilitator default. Fix: verify the facilitator's advertised method before claiming a payment path is wrong.
+2. **Grace-window overclaim.** A draft #98 comment claimed "goodmeta hold TTL 5min lands on SpendGuard's relaxed grace bound." Eric challenged; `HOLD_WINDOW_MS` is the hold *lifetime* (held→expired), NOT a grace window — goodmeta has no grace concept. Conflated two things to add substance. Cut entirely; show-don't-ship caught it pre-post.
+Both reinforce: verify-claims on primary sources + don't manufacture substance; show-don't-ship + cooling-off are why neither reached the public.
 
 ## Next concrete action
-Start the agent-verifier-pro parity task: `cd ~/code/goodmeta/agent-verifier-pro`, read `src/engine` + `HANDOFF.md`, confirm it's the old EIP-712 model, then plan routing its mandate verification through `@goodmeta/agent-verifier@0.5`'s `ap2.verifyChain` + `ap2.verifyPaymentChain`.
+Pick one: (a) operator runs the two one-liners (npm deprecate <0.5; set AP2_TRUSTED_KEYS); (b) next agent scopes the AP2 #259 `iss`-MUST PR (verify AP2 SDK iss handling → draft → council → Eric approves → open); or (c) re-triage the 24 recovered monitors via `cd ~/code/goodmeta/gm-crm && python3 crm.py due`.
