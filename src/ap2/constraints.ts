@@ -29,6 +29,21 @@ type Constraint = { type: string } & Record<string, unknown>;
 interface EvalContext {
   openCheckoutHash?: string;
   mandateContext?: MandateContext;
+  /**
+   * Constraint types the caller requires to have been enforced on this mandate,
+   * e.g. `["payment.budget"]`.
+   *
+   * AP2 builds one evaluator per constraint PRESENT in the open mandate and never
+   * asserts which constraints ought to have been there, so a constraint withheld
+   * through selective disclosure produces no evaluator and no violation. An empty
+   * result therefore cannot distinguish "every constraint was evaluated and
+   * satisfied" from "nothing was evaluated". Declaring the set here makes the
+   * difference observable: a required constraint that is absent is reported
+   * rather than silently skipped.
+   *
+   * Opt-in and additive. Omit it and evaluation is byte-identical to AP2.
+   */
+  requiredConstraints?: string[];
 }
 
 /** Port of `merchant_matches`: id-first, else name+website (both non-empty). */
@@ -204,6 +219,18 @@ export function checkPaymentConstraints(open: OpenPaymentMandate, closed: Paymen
     }
     if (!types.includes("payment.budget")) {
       violations.push("payment.agent_recurrence requires payment.budget constraint");
+    }
+  }
+
+  // Caller-declared coverage. Same shape as the agent_recurrence check above,
+  // generalised: a constraint the caller requires but which is not present was
+  // never evaluated, so reporting no violation for it would certify a limit that
+  // was never applied. Only runs when the caller opts in.
+  for (const required of ctx.requiredConstraints ?? []) {
+    if (!types.includes(required)) {
+      violations.push(
+        `${required} was required but is not present in the open mandate, so it was never evaluated`,
+      );
     }
   }
 

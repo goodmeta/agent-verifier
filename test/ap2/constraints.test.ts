@@ -41,6 +41,77 @@ for (const v of vectors) {
   });
 }
 
+// ── requiredConstraints: caller-declared coverage ────────────────────────────
+// AP2 evaluates only the constraints PRESENT in the open mandate, so one withheld
+// through selective disclosure produces no evaluator and no violation. The
+// `*_absent_silent_pass` vectors above pin that behaviour: we must match AP2
+// exactly when the caller declares nothing. These tests cover the opt-in path,
+// where the caller names the limits it requires to have been enforced.
+
+const absentVectors = vectors.filter((v) => v.name.endsWith("_absent_required"));
+
+// Guard the fixture itself: if the generator stops emitting these, the tests
+// below would silently vacuously pass.
+test("requiredConstraints: absence vectors are present in the fixture", () => {
+  assert.ok(absentVectors.length >= 3, `expected the *_absent_required vectors, got ${absentVectors.length}`);
+});
+
+for (const v of absentVectors) {
+  const required = (v as CV & { requiredConstraints?: string[] }).requiredConstraints ?? [];
+
+  test(`requiredConstraints: ${v.name} is silent without the declaration (AP2 parity)`, () => {
+    const violations = checkPaymentConstraints(
+      OpenPaymentMandateSchema.parse(v.open),
+      PaymentMandateSchema.parse(v.closed),
+      {
+        mandateContext: v.context
+          ? { total_amount: v.context.total_amount, total_uses: v.context.total_uses }
+          : undefined,
+      },
+    );
+    assert.deepEqual(violations, v.ap2Violations, "omitting requiredConstraints must stay byte-identical to AP2");
+    assert.equal(violations.length, 0, "AP2 reports nothing here, which is the whole problem");
+  });
+
+  test(`requiredConstraints: ${v.name} is reported when declared`, () => {
+    const violations = checkPaymentConstraints(
+      OpenPaymentMandateSchema.parse(v.open),
+      PaymentMandateSchema.parse(v.closed),
+      {
+        mandateContext: v.context
+          ? { total_amount: v.context.total_amount, total_uses: v.context.total_uses }
+          : undefined,
+        requiredConstraints: required,
+      },
+    );
+    assert.ok(violations.length > 0, "a required-but-absent constraint must not report a clean pass");
+    for (const r of required) {
+      assert.ok(
+        violations.some((m) => m.includes(r)),
+        `violation should name the constraint that was never evaluated (${r}); got ${JSON.stringify(violations)}`,
+      );
+    }
+  });
+}
+
+test("requiredConstraints: a constraint that IS present is not falsely reported", () => {
+  // budget_over discloses payment.budget, so declaring it required must add
+  // nothing: the real over-cap violation is the only one.
+  const control = vectors.find((v) => v.name === "budget_over");
+  assert.ok(control, "budget_over control vector missing");
+  const violations = checkPaymentConstraints(
+    OpenPaymentMandateSchema.parse(control.open),
+    PaymentMandateSchema.parse(control.closed),
+    {
+      mandateContext: control.context
+        ? { total_amount: control.context.total_amount, total_uses: control.context.total_uses }
+        : undefined,
+      requiredConstraints: ["payment.budget"],
+    },
+  );
+  assert.deepEqual(violations, control.ap2Violations, "declaring a present constraint must not add a violation");
+});
+
 // Unknown constraint type: AP2 rejects it at parse (pydantic discriminated
 // union); we reject at evaluation (closed-world, AUTH-15). Both fail closed.
 test("unknown constraint type fails evaluation (AUTH-15)", () => {
