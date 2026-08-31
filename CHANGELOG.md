@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.1
+
+- **`requiredConstraints` now reaches `verifyPaymentChain`.** 0.6.0 added it to
+  `checkPaymentConstraints` only, which left it unreachable for callers using the
+  chain-level API — the level examples and integrations actually call, so the
+  feature was effectively unavailable where it mattered. `VerifyPaymentChainOptions`
+  now carries it and forwards it. Still opt-in: omit it and behaviour is unchanged.
+
 ## 0.6.0
 
 - **`requiredConstraints`: an unevaluated limit is no longer a clean pass.** AP2

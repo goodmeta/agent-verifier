@@ -56,6 +56,13 @@ export interface VerifyPaymentChainOptions {
   expectedTransactionId?: string;
   openCheckoutHash?: string;
   mandateContext?: MandateContext;
+  /**
+   * Constraint types the caller requires to have been enforced on this mandate,
+   * e.g. `["payment.budget"]`. Forwarded to `checkPaymentConstraints`: a required
+   * constraint absent from the open mandate was never evaluated, so it is
+   * reported rather than passing silently. Opt-in; omit it for AP2 parity.
+   */
+  requiredConstraints?: string[];
 }
 
 /** Verify a payment chain's constraints + linkage. Returns [] when satisfied. */
@@ -63,6 +70,7 @@ export function verifyPaymentChain(chain: PaymentChain, opts: VerifyPaymentChain
   const violations = checkPaymentConstraints(chain.open, chain.closed, {
     openCheckoutHash: opts.openCheckoutHash,
     mandateContext: opts.mandateContext,
+    requiredConstraints: opts.requiredConstraints,
   });
   if (opts.expectedTransactionId !== undefined && opts.expectedTransactionId !== chain.closed.transaction_id) {
     violations.push(

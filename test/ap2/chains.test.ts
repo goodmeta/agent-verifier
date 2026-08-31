@@ -84,3 +84,27 @@ test("receiptReference is NOT sha256(getClosedMandateJwt) — spec vs SDK-helper
   assert.equal(receiptReference(rr.chain), rr.ap2Reference, "reference matches AP2's sd_hash path");
   assert.notEqual(receiptReference(rr.chain), leafHash, "and is intentionally different from the leaf-JWT hash");
 });
+
+// requiredConstraints must reach checkPaymentConstraints through the chain API.
+// Shipped in 0.6.0 on checkPaymentConstraints only, which left it unreachable
+// for callers using verifyPaymentChain — the level examples and integrations
+// actually call.
+test("verifyPaymentChain forwards requiredConstraints", () => {
+  const vectors = JSON.parse(
+    readFileSync(join(here, "../fixtures/ap2-constraint-vectors.json"), "utf8"),
+  ) as { name: string; open: unknown; closed: unknown; ap2Violations: string[] }[];
+  const v = vectors.find((x) => x.name === "budget_absent_required");
+  assert.ok(v, "budget_absent_required vector missing");
+
+  const chain = parsePaymentChain([v.open, v.closed] as never);
+
+  const silent = verifyPaymentChain(chain, {});
+  assert.deepEqual(silent, v.ap2Violations, "without the declaration: AP2 parity");
+
+  const declared = verifyPaymentChain(chain, { requiredConstraints: ["payment.budget"] });
+  assert.ok(declared.length > 0, "with the declaration: must not report a clean pass");
+  assert.ok(
+    declared.some((m) => m.includes("payment.budget")),
+    `violation should name the unevaluated constraint; got ${JSON.stringify(declared)}`,
+  );
+});
