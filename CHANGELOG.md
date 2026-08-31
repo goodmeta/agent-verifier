@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.6.0
+
+- **`requiredConstraints`: an unevaluated limit is no longer a clean pass.** AP2
+  builds one evaluator per constraint **present** in the open mandate and never
+  asserts which constraints ought to have been there. A constraint withheld
+  through selective disclosure produces no evaluator and no violation, so an
+  over-cap payment clears with an empty violation list. An empty result cannot
+  distinguish *"every constraint was evaluated and satisfied"* from *"nothing was
+  evaluated"* — which is the state a caller actually needs. `checkPaymentConstraints`
+  now takes an optional `requiredConstraints` on `EvalContext`: the constraint
+  types the caller requires to have been enforced. One that is absent is reported
+  instead of silently skipped. This generalises a shape AP2 already has for a
+  single case, where `agent_recurrence` requires `amount_range` and `budget` to be
+  present. **Strictly opt-in and additive**: omit it and evaluation stays
+  byte-identical to AP2, held to that by the parity suite. Clears the three
+  absence-class hardening vectors in
+  [ap2-conformance](https://github.com/goodmeta/ap2-conformance) (payment-constraints
+  hardening 0/3 → 3/3, core unchanged at 65/65).
+  Ref: [AP2 #339](https://github.com/google-agentic-commerce/AP2/issues/339).
+
 ## 0.5.0
 
 - **Real AP2 mandate verification — `ap2.*` namespace.** AP2 mandates are

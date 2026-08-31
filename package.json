@@ -1,6 +1,6 @@
 {
   "name": "@goodmeta/agent-verifier",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Agent spending verification — signature verification, policy-based constraints, and Verifier API client",
   "type": "module",
   "main": "dist/index.js",
