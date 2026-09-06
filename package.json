@@ -16,12 +16,12 @@
     "README.md"
   ],
   "devDependencies": {
-    "@types/node": "20.19.42",
-    "tsx": "4.21.0",
+    "@types/node": "20.19.43",
+    "tsx": "4.23.12",
     "typescript": "5.9.3"
   },
   "dependencies": {
-    "jose": "6.2.3",
+    "jose": "6.2.10",
     "zod": "4.4.3"
   },
   "license": "MIT"
