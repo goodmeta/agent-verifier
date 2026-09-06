@@ -1,6 +1,6 @@
 {
   "name": "@goodmeta/agent-verifier",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "description": "Agent spending verification — signature verification, policy-based constraints, and Verifier API client",
   "type": "module",
   "main": "dist/index.js",
@@ -24,5 +24,5 @@
     "jose": "6.2.3",
     "zod": "4.4.3"
   },
-  "license": "MIT"
+  "license": "Apache-2.0"
 }

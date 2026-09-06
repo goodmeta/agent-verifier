@@ -218,4 +218,4 @@ Calls apply a timeout and throw a typed `VerifierError` (with HTTP `status` + `b
 
 ## License
 
-MIT — [Good Meta](https://goodmeta.co)
+Apache-2.0 — [Good Meta](https://goodmeta.co)
