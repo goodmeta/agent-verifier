@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- **`checkPolicy` allowlists now fail closed.** When a policy set `allowedCodes`
+  or `allowedCustomers`, a request that omitted `metadata.code` /
+  `metadata.customer` (or sent an empty string) skipped the allowlist and was
+  approved if the amount and budget checks passed. Such a request is now denied
+  with `CODE_NOT_ALLOWED` / `CUSTOMER_NOT_ALLOWED`. **Behavior change** for
+  callers that set an allowlist but do not send the field: send it, or drop the
+  allowlist. Policies without allowlists are unaffected. Reported in
+  [#8](https://github.com/goodmeta/agent-verifier/issues/8).
+
 ## 0.6.1
 
 - **`requiredConstraints` now reaches `verifyPaymentChain`.** 0.6.0 added it to
