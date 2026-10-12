@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.8.0
 
 - **`checkPolicy` allowlists now fail closed.** When a policy set `allowedCodes`
   or `allowedCustomers`, a request that omitted `metadata.code` /
