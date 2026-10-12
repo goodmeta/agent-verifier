@@ -12,19 +12,19 @@ const req = (amount: unknown, extra: Record<string, unknown> = {}) =>
   ({ agentId: "billing-agent", amount, idempotencyKey: "k", ...extra }) as never;
 
 test("approves a valid in-budget request and reports remaining", () => {
-  const r = checkPolicy(policy, req(4_500));
+  const r = checkPolicy(policy, req(4_500, { metadata: { code: "api_calls" } }));
   assert.equal(r.approved, true);
   assert.deepEqual(r.remaining, { budget: 15_500, period: "monthly" });
 });
 
 test("denies over per-event max", () => {
-  const r = checkPolicy(policy, req(6_000));
+  const r = checkPolicy(policy, req(6_000, { metadata: { code: "api_calls" } }));
   assert.equal(r.approved, false);
   assert.equal(r.reason, "AMOUNT_EXCEEDED");
 });
 
 test("denies when amount exceeds remaining budget (currentSpend applied)", () => {
-  const r = checkPolicy(policy, req(3_000), 18_000);
+  const r = checkPolicy(policy, req(3_000, { metadata: { code: "api_calls" } }), 18_000);
   assert.equal(r.approved, false);
   assert.equal(r.reason, "BUDGET_EXCEEDED");
 });
@@ -36,7 +36,7 @@ test("denies a code not in the allowlist", () => {
 });
 
 test("denies a blocked customer", () => {
-  const r = checkPolicy(policy, req(1_000, { metadata: { customer: "acme" } }));
+  const r = checkPolicy(policy, req(1_000, { metadata: { code: "api_calls", customer: "acme" } }));
   assert.equal(r.approved, false);
   assert.equal(r.reason, "CUSTOMER_BLOCKED");
 });
@@ -58,4 +58,37 @@ test("rejects a malformed request shape (missing agentId)", () => {
   const r = checkPolicy(policy, { amount: 1_000, idempotencyKey: "k" } as never);
   assert.equal(r.approved, false);
   assert.equal(r.reason, "INVALID_REQUEST");
+});
+
+// #8: an allowlist used to be skipped when the request omitted the field, so a
+// request with no code (or no customer) cleared a policy that restricts it.
+test("denies a request with no code when the policy has a code allowlist", () => {
+  for (const extra of [{}, { metadata: {} }, { metadata: { code: "" } }]) {
+    const r = checkPolicy(policy, req(1_000, extra));
+    assert.equal(r.approved, false);
+    assert.equal(r.reason, "CODE_NOT_ALLOWED");
+  }
+});
+
+const customerScoped: SpendingPolicy = {
+  ...policy,
+  constraints: { maxPerEvent: 5_000, allowedCustomers: ["globex"] },
+};
+
+test("denies a request with no customer when the policy has a customer allowlist", () => {
+  for (const extra of [{}, { metadata: {} }, { metadata: { customer: "" } }]) {
+    const r = checkPolicy(customerScoped, req(1_000, extra));
+    assert.equal(r.approved, false);
+    assert.equal(r.reason, "CUSTOMER_NOT_ALLOWED");
+  }
+});
+
+test("still approves a listed customer, and an unlisted one is still denied", () => {
+  assert.equal(checkPolicy(customerScoped, req(1_000, { metadata: { customer: "globex" } })).approved, true);
+  assert.equal(checkPolicy(customerScoped, req(1_000, { metadata: { customer: "acme" } })).reason, "CUSTOMER_NOT_ALLOWED");
+});
+
+test("a policy with no allowlists does not require code or customer", () => {
+  const open: SpendingPolicy = { ...policy, constraints: { maxPerEvent: 5_000 } };
+  assert.equal(checkPolicy(open, req(1_000)).approved, true);
 });

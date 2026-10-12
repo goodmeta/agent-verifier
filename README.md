@@ -66,9 +66,18 @@ const policy: SpendingPolicy = {
 checkPolicy(policy, {
   agentId: "billing-agent",
   amount: 4_500,
+  metadata: { code: "api_calls" },
   idempotencyKey: "tx-1",
 })
 // → { approved: true, remaining: { budget: 15500, period: "monthly" } }
+
+// ❌ no code, but the policy only allows listed codes (allowlists fail closed)
+checkPolicy(policy, {
+  agentId: "billing-agent",
+  amount: 4_500,
+  idempotencyKey: "tx-3",
+})
+// → { approved: false, reason: "CODE_NOT_ALLOWED", detail: "No code given; this policy only allows listed codes" }
 
 // ❌ over per-event limit
 checkPolicy(policy, {

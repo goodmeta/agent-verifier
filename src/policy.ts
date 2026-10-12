@@ -88,8 +88,16 @@ export function checkPolicy(
     };
   }
 
-  // Code allowlist
-  if (metadata?.code && constraints.allowedCodes?.length) {
+  // Code allowlist. Fails closed: when the policy lists allowed codes, a request
+  // that omits `metadata.code` (or sends "") is denied, not waved through.
+  if (constraints.allowedCodes?.length) {
+    if (!metadata?.code) {
+      return {
+        approved: false,
+        reason: "CODE_NOT_ALLOWED",
+        detail: "No code given; this policy only allows listed codes",
+      };
+    }
     if (!constraints.allowedCodes.includes(metadata.code)) {
       return {
         approved: false,
@@ -108,8 +116,15 @@ export function checkPolicy(
     };
   }
 
-  // Customer allowlist
-  if (metadata?.customer && constraints.allowedCustomers?.length) {
+  // Customer allowlist. Fails closed, as the code allowlist does.
+  if (constraints.allowedCustomers?.length) {
+    if (!metadata?.customer) {
+      return {
+        approved: false,
+        reason: "CUSTOMER_NOT_ALLOWED",
+        detail: "No customer given; this policy only allows listed customers",
+      };
+    }
     if (!constraints.allowedCustomers.includes(metadata.customer)) {
       return {
         approved: false,
