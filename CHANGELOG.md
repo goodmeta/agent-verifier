@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.1
+
+- **Security: zod bumped to 4.6.7** for
+  [GHSA-mrhx-c7xc-m3w5](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5)
+  (high). zod before 4.6.6 records one issue per failing array element with no
+  cap, so an oversized array sent against an unbounded `z.array` schema can
+  exhaust memory. Several of this package's schemas are unbounded arrays parsed
+  from caller-supplied input. No API change.
+
 ## 0.8.0
 
 - **`checkPolicy` allowlists now fail closed.** When a policy set `allowedCodes`
