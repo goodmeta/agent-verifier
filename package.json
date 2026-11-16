@@ -22,7 +22,7 @@
     "typescript": "5.9.3"
   },
   "dependencies": {
-    "jose": "6.2.13",
+    "jose": "6.2.15",
     "zod": "4.6.7"
   },
   "license": "Apache-2.0"
